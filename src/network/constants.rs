@@ -67,8 +67,6 @@ user_enum! {
         Garlicoin <-> "garlicoin",
         /// Garlicoin's testnet
         Testnet <-> "testnet",
-        /// Garlicoin's signet
-        Signet <-> "signet",
         /// Garlicoin's regtest
         Regtest <-> "regtest"
     }
@@ -88,10 +86,9 @@ impl Network {
     pub fn from_magic(magic: u32) -> Option<Network> {
         // Note: any new entries here must be added to `magic` below
         match magic {
-            0xD9B4BEF9 => Some(Network::Garlicoin),
-            0x0709110B => Some(Network::Testnet),
-            0x40CF030A => Some(Network::Signet),
-            0xDAB5BFFA => Some(Network::Regtest),
+            0xdbb6c6d2 => Some(Network::Garlicoin),
+            0xf2c8d2fd => Some(Network::Testnet),
+            0xdab5bffa => Some(Network::Regtest),
             _ => None,
         }
     }
@@ -110,10 +107,9 @@ impl Network {
     pub fn magic(self) -> u32 {
         // Note: any new entries here must be added to `from_magic` above
         match self {
-            Network::Garlicoin => 0xD9B4BEF9,
-            Network::Testnet => 0x0709110B,
-            Network::Signet => 0x40CF030A,
-            Network::Regtest => 0xDAB5BFFA,
+            Network::Garlicoin => 0xdbb6c6d2,
+            Network::Testnet => 0xf2c8d2fd,
+            Network::Regtest => 0xdab5bffa,
         }
     }
 }
@@ -294,15 +290,11 @@ mod tests {
     fn serialize_test() {
         assert_eq!(
             serialize(&Network::Garlicoin.magic()),
-            &[0xf9, 0xbe, 0xb4, 0xd9]
+            &[0xd2, 0xc6, 0xb6, 0xdb]
         );
         assert_eq!(
             serialize(&Network::Testnet.magic()),
-            &[0x0b, 0x11, 0x09, 0x07]
-        );
-        assert_eq!(
-            serialize(&Network::Signet.magic()),
-            &[0x0a, 0x03, 0xcf, 0x40]
+            &[0xfd, 0xd2, 0xc8, 0xf2]
         );
         assert_eq!(
             serialize(&Network::Regtest.magic()),
@@ -318,10 +310,6 @@ mod tests {
             Some(Network::Testnet.magic())
         );
         assert_eq!(
-            deserialize(&[0x0a, 0x03, 0xcf, 0x40]).ok(),
-            Some(Network::Signet.magic())
-        );
-        assert_eq!(
             deserialize(&[0xfa, 0xbf, 0xb5, 0xda]).ok(),
             Some(Network::Regtest.magic())
         );
@@ -332,12 +320,10 @@ mod tests {
         assert_eq!(Network::Garlicoin.to_string(), "garlicoin");
         assert_eq!(Network::Testnet.to_string(), "testnet");
         assert_eq!(Network::Regtest.to_string(), "regtest");
-        assert_eq!(Network::Signet.to_string(), "signet");
 
         assert_eq!("garlicoin".parse::<Network>().unwrap(), Network::Garlicoin);
         assert_eq!("testnet".parse::<Network>().unwrap(), Network::Testnet);
         assert_eq!("regtest".parse::<Network>().unwrap(), Network::Regtest);
-        assert_eq!("signet".parse::<Network>().unwrap(), Network::Signet);
         assert!("fakenet".parse::<Network>().is_err());
     }
 

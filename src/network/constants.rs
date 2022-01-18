@@ -1,4 +1,4 @@
-// Rust Bitcoin Library
+// Rust Garlicoin Library
 // Written in 2014 by
 //   Andrew Poelstra <apoelstra@wpsoftware.net>
 //
@@ -12,9 +12,9 @@
 // If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 //
 
-//! Bitcoin network constants.
+//! Garlicoin network constants.
 //!
-//! This module provides various constants relating to the Bitcoin network
+//! This module provides various constants relating to the Garlicoin network
 //! protocol, such as protocol versioning and magic header bytes.
 //!
 //! The [`Network`][1] type implements the [`Decodable`][2] and
@@ -28,19 +28,19 @@
 //! # Example: encoding a network's magic bytes
 //!
 //! ```rust
-//! use bitcoin::network::constants::Network;
-//! use bitcoin::consensus::encode::serialize;
+//! use garlicoin::network::constants::Network;
+//! use garlicoin::consensus::encode::serialize;
 //!
-//! let network = Network::Bitcoin;
+//! let network = Network::Garlicoin;
 //! let bytes = serialize(&network.magic());
 //!
 //! assert_eq!(&bytes[..], &[0xF9, 0xBE, 0xB4, 0xD9]);
 //! ```
 
-use core::{fmt, ops, convert::From};
+use core::{convert::From, fmt, ops};
 
+use consensus::encode::{self, Decodable, Encodable};
 use io;
-use consensus::encode::{self, Encodable, Decodable};
 
 /// Version of the protocol as appearing in network message headers
 /// This constant is used to signal to other peers which features you support.
@@ -63,13 +63,13 @@ user_enum! {
     /// The cryptocurrency to act on
     #[derive(Copy, PartialEq, Eq, PartialOrd, Ord, Clone, Hash, Debug)]
     pub enum Network {
-        /// Classic Bitcoin
-        Bitcoin <-> "bitcoin",
-        /// Bitcoin's testnet
+        /// Classic Garlicoin
+        Garlicoin <-> "garlicoin",
+        /// Garlicoin's testnet
         Testnet <-> "testnet",
-        /// Bitcoin's signet
+        /// Garlicoin's signet
         Signet <-> "signet",
-        /// Bitcoin's regtest
+        /// Garlicoin's regtest
         Regtest <-> "regtest"
     }
 }
@@ -80,19 +80,19 @@ impl Network {
     /// # Examples
     ///
     /// ```rust
-    /// use bitcoin::network::constants::Network;
+    /// use garlicoin::network::constants::Network;
     ///
-    /// assert_eq!(Some(Network::Bitcoin), Network::from_magic(0xD9B4BEF9));
+    /// assert_eq!(Some(Network::Garlicoin), Network::from_magic(0xD9B4BEF9));
     /// assert_eq!(None, Network::from_magic(0xFFFFFFFF));
     /// ```
     pub fn from_magic(magic: u32) -> Option<Network> {
         // Note: any new entries here must be added to `magic` below
         match magic {
-            0xD9B4BEF9 => Some(Network::Bitcoin),
+            0xD9B4BEF9 => Some(Network::Garlicoin),
             0x0709110B => Some(Network::Testnet),
             0x40CF030A => Some(Network::Signet),
             0xDAB5BFFA => Some(Network::Regtest),
-            _ => None
+            _ => None,
         }
     }
 
@@ -102,17 +102,17 @@ impl Network {
     /// # Examples
     ///
     /// ```rust
-    /// use bitcoin::network::constants::Network;
+    /// use garlicoin::network::constants::Network;
     ///
-    /// let network = Network::Bitcoin;
+    /// let network = Network::Garlicoin;
     /// assert_eq!(network.magic(), 0xD9B4BEF9);
     /// ```
     pub fn magic(self) -> u32 {
         // Note: any new entries here must be added to `from_magic` above
         match self {
-            Network::Bitcoin => 0xD9B4BEF9,
+            Network::Garlicoin => 0xD9B4BEF9,
             Network::Testnet => 0x0709110B,
-            Network::Signet  => 0x40CF030A,
+            Network::Signet => 0x40CF030A,
             Network::Regtest => 0xDAB5BFFA,
         }
     }
@@ -127,16 +127,16 @@ impl ServiceFlags {
     pub const NONE: ServiceFlags = ServiceFlags(0);
 
     /// NETWORK means that the node is capable of serving the complete block chain. It is currently
-    /// set by all Bitcoin Core non pruned nodes, and is unset by SPV clients or other light
+    /// set by all Garlicoin Core non pruned nodes, and is unset by SPV clients or other light
     /// clients.
     pub const NETWORK: ServiceFlags = ServiceFlags(1 << 0);
 
-    /// GETUTXO means the node is capable of responding to the getutxo protocol request.  Bitcoin
-    /// Core does not support this but a patch set called Bitcoin XT does.
+    /// GETUTXO means the node is capable of responding to the getutxo protocol request.  Garlicoin
+    /// Core does not support this but a patch set called Garlicoin XT does.
     /// See BIP 64 for details on how this is implemented.
     pub const GETUTXO: ServiceFlags = ServiceFlags(1 << 1);
 
-    /// BLOOM means the node is capable and willing to handle bloom-filtered connections.  Bitcoin
+    /// BLOOM means the node is capable and willing to handle bloom-filtered connections.  Garlicoin
     /// Core nodes used to support this by default, without advertising this bit, but no longer do
     /// as of protocol version 70011 (= NO_BLOOM_VERSION)
     pub const BLOOM: ServiceFlags = ServiceFlags(1 << 2);
@@ -144,7 +144,6 @@ impl ServiceFlags {
     /// WITNESS indicates that a node can be asked for blocks and transactions including witness
     /// data.
     pub const WITNESS: ServiceFlags = ServiceFlags(1 << 3);
-    
     /// COMPACT_FILTERS means the node will service basic block filter requests.
     /// See BIP157 and BIP158 for details on how this is implemented.
     pub const COMPACT_FILTERS: ServiceFlags = ServiceFlags(1 << 6);
@@ -212,7 +211,7 @@ impl fmt::Display for ServiceFlags {
                     write!(f, stringify!($f))?;
                     flags.remove(ServiceFlags::$f);
                 }
-            }
+            };
         }
         write!(f, "ServiceFlags(")?;
         write_flag!(NETWORK);
@@ -274,10 +273,7 @@ impl ops::BitXorAssign for ServiceFlags {
 
 impl Encodable for ServiceFlags {
     #[inline]
-    fn consensus_encode<S: io::Write>(
-        &self,
-        mut s: S,
-    ) -> Result<usize, io::Error> {
+    fn consensus_encode<S: io::Write>(&self, mut s: S) -> Result<usize, io::Error> {
         self.0.consensus_encode(&mut s)
     }
 }
@@ -297,7 +293,7 @@ mod tests {
     #[test]
     fn serialize_test() {
         assert_eq!(
-            serialize(&Network::Bitcoin.magic()),
+            serialize(&Network::Garlicoin.magic()),
             &[0xf9, 0xbe, 0xb4, 0xd9]
         );
         assert_eq!(
@@ -315,7 +311,7 @@ mod tests {
 
         assert_eq!(
             deserialize(&[0xf9, 0xbe, 0xb4, 0xd9]).ok(),
-            Some(Network::Bitcoin.magic())
+            Some(Network::Garlicoin.magic())
         );
         assert_eq!(
             deserialize(&[0x0b, 0x11, 0x09, 0x07]).ok(),
@@ -333,12 +329,12 @@ mod tests {
 
     #[test]
     fn string_test() {
-        assert_eq!(Network::Bitcoin.to_string(), "bitcoin");
+        assert_eq!(Network::Garlicoin.to_string(), "garlicoin");
         assert_eq!(Network::Testnet.to_string(), "testnet");
         assert_eq!(Network::Regtest.to_string(), "regtest");
         assert_eq!(Network::Signet.to_string(), "signet");
 
-        assert_eq!("bitcoin".parse::<Network>().unwrap(), Network::Bitcoin);
+        assert_eq!("garlicoin".parse::<Network>().unwrap(), Network::Garlicoin);
         assert_eq!("testnet".parse::<Network>().unwrap(), Network::Testnet);
         assert_eq!("regtest".parse::<Network>().unwrap(), Network::Regtest);
         assert_eq!("signet".parse::<Network>().unwrap(), Network::Signet);
@@ -366,12 +362,14 @@ mod tests {
 
         let mut flags2 = flags | ServiceFlags::GETUTXO;
         for f in all.iter() {
-            assert_eq!(flags2.has(*f), *f == ServiceFlags::WITNESS || *f == ServiceFlags::GETUTXO);
+            assert_eq!(
+                flags2.has(*f),
+                *f == ServiceFlags::WITNESS || *f == ServiceFlags::GETUTXO
+            );
         }
 
         flags2 ^= ServiceFlags::WITNESS;
         assert_eq!(flags2, ServiceFlags::GETUTXO);
-        
         flags2 |= ServiceFlags::COMPACT_FILTERS;
         flags2 ^= ServiceFlags::GETUTXO;
         assert_eq!(flags2, ServiceFlags::COMPACT_FILTERS);
@@ -382,7 +380,9 @@ mod tests {
         let flag = ServiceFlags::WITNESS | ServiceFlags::BLOOM | ServiceFlags::NETWORK;
         assert_eq!("ServiceFlags(NETWORK|BLOOM|WITNESS)", flag.to_string());
         let flag = ServiceFlags::WITNESS | 0xf0.into();
-        assert_eq!("ServiceFlags(WITNESS|COMPACT_FILTERS|0xb0)", flag.to_string());
+        assert_eq!(
+            "ServiceFlags(WITNESS|COMPACT_FILTERS|0xb0)",
+            flag.to_string()
+        );
     }
 }
-

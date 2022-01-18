@@ -1,4 +1,4 @@
-// Rust Bitcoin Library
+// Rust Garlicoin Library
 // Written in 2014 by
 //     Andrew Poelstra <apoelstra@wpsoftware.net>
 //
@@ -12,7 +12,7 @@
 // If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 //
 
-//! Bitcoin network-related network messages.
+//! Garlicoin network-related network messages.
 //!
 //! This module defines network messages which describe peers and their
 //! capabilities.
@@ -22,12 +22,12 @@ use prelude::*;
 
 use io;
 
+use consensus::encode;
+use consensus::{Decodable, Encodable, ReadExt};
+use hashes::sha256d;
 use network::address::Address;
 use network::constants::{self, ServiceFlags};
-use consensus::{Encodable, Decodable, ReadExt};
-use consensus::encode;
 use network::message::CommandString;
-use hashes::sha256d;
 
 /// Some simple messages
 
@@ -53,7 +53,7 @@ pub struct VersionMessage {
     /// Whether the receiving peer should relay messages to the sender; used
     /// if the sender is bandwidth-limited and would like to support bloom
     /// filtering. Defaults to false.
-    pub relay: bool
+    pub relay: bool,
 }
 
 impl VersionMessage {
@@ -81,9 +81,18 @@ impl VersionMessage {
     }
 }
 
-impl_consensus_encoding!(VersionMessage, version, services, timestamp,
-                         receiver, sender, nonce,
-                         user_agent, start_height, relay);
+impl_consensus_encoding!(
+    VersionMessage,
+    version,
+    services,
+    timestamp,
+    receiver,
+    sender,
+    nonce,
+    user_agent,
+    start_height,
+    relay
+);
 
 /// message rejection reason as a code
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
@@ -103,7 +112,7 @@ pub enum RejectReason {
     /// insufficient fee
     Fee = 0x42,
     /// checkpoint
-    Checkpoint = 0x43
+    Checkpoint = 0x43,
 }
 
 impl Encodable for RejectReason {
@@ -124,7 +133,7 @@ impl Decodable for RejectReason {
             0x41 => RejectReason::Dust,
             0x42 => RejectReason::Fee,
             0x43 => RejectReason::Checkpoint,
-            _ => return Err(encode::Error::ParseFailed("unknown reject code"))
+            _ => return Err(encode::Error::ParseFailed("unknown reject code")),
         })
     }
 }
@@ -139,7 +148,7 @@ pub struct Reject {
     /// reason of rejectection
     pub reason: Cow<'static, str>,
     /// reference to rejected item
-    pub hash: sha256d::Hash
+    pub hash: sha256d::Hash,
 }
 
 impl_consensus_encoding!(Reject, message, ccode, reason, hash);

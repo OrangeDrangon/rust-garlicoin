@@ -1,4 +1,4 @@
-// Rust Bitcoin Library
+// Rust Garlicoin Library
 // Written in 2014 by
 //     Andrew Poelstra <apoelstra@wpsoftware.net>
 // To the extent possible under law, the author(s) have dedicated all
@@ -11,24 +11,27 @@
 // If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 //
 
-//! Schnorr Bitcoin keys.
+//! Schnorr Garlicoin keys.
 //!
-//! This module provides Schnorr keys used in Bitcoin, reexporting Secp256k1
+//! This module provides Schnorr keys used in Garlicoin, reexporting Secp256k1
 //! Schnorr key types.
 //!
 
 use core::fmt;
 use prelude::*;
 
-use secp256k1::{XOnlyPublicKey as _XOnlyPublicKey, KeyPair as _KeyPair};
+use secp256k1::{KeyPair as _KeyPair, XOnlyPublicKey as _XOnlyPublicKey};
 
-use secp256k1::{self, Secp256k1, Verification, constants};
 use hashes::Hash;
+use secp256k1::{self, constants, Secp256k1, Verification};
 use util::taproot::{TapBranchHash, TapTweakHash};
 use SchnorrSigHashType;
 
 /// Deprecated re-export of [`secp256k1::XOnlyPublicKey`]
-#[deprecated(since = "0.28.0", note = "Please use `util::key::XOnlyPublicKey` instead")]
+#[deprecated(
+    since = "0.28.0",
+    note = "Please use `util::key::XOnlyPublicKey` instead"
+)]
 pub type XOnlyPublicKey = _XOnlyPublicKey;
 
 /// Deprecated re-export of [`secp256k1::KeyPair`]
@@ -82,7 +85,11 @@ pub trait TapTweak {
     ///
     /// # Returns
     /// The tweaked key and its parity.
-    fn tap_tweak<C: Verification>(self, secp: &Secp256k1<C>, merkle_root: Option<TapBranchHash>) -> Self::TweakedAux;
+    fn tap_tweak<C: Verification>(
+        self,
+        secp: &Secp256k1<C>,
+        merkle_root: Option<TapBranchHash>,
+    ) -> Self::TweakedAux;
 
     /// Directly converts an [`UntweakedPublicKey`] to a [`TweakedPublicKey`]
     ///
@@ -107,10 +114,16 @@ impl TapTweak for UntweakedPublicKey {
     ///
     /// # Returns
     /// The tweaked key and its parity.
-    fn tap_tweak<C: Verification>(self, secp: &Secp256k1<C>, merkle_root: Option<TapBranchHash>) -> (TweakedPublicKey, secp256k1::Parity) {
+    fn tap_tweak<C: Verification>(
+        self,
+        secp: &Secp256k1<C>,
+        merkle_root: Option<TapBranchHash>,
+    ) -> (TweakedPublicKey, secp256k1::Parity) {
         let tweak_value = TapTweakHash::from_key_and_tweak(self, merkle_root).into_inner();
         let mut output_key = self.clone();
-        let parity = output_key.tweak_add_assign(&secp, &tweak_value).expect("Tap tweak failed");
+        let parity = output_key
+            .tweak_add_assign(&secp, &tweak_value)
+            .expect("Tap tweak failed");
 
         debug_assert!(self.tweak_add_check(&secp, &output_key, parity, tweak_value));
         (TweakedPublicKey(output_key), parity)
@@ -137,10 +150,15 @@ impl TapTweak for UntweakedKeyPair {
     ///
     /// # Returns
     /// The tweaked key and its parity.
-    fn tap_tweak<C: Verification>(mut self, secp: &Secp256k1<C>, merkle_root: Option<TapBranchHash>) -> TweakedKeyPair {
+    fn tap_tweak<C: Verification>(
+        mut self,
+        secp: &Secp256k1<C>,
+        merkle_root: Option<TapBranchHash>,
+    ) -> TweakedKeyPair {
         let pubkey = ::XOnlyPublicKey::from_keypair(&self);
         let tweak_value = TapTweakHash::from_key_and_tweak(pubkey, merkle_root).into_inner();
-        self.tweak_add_assign(&secp, &tweak_value).expect("Tap tweak failed");
+        self.tweak_add_assign(&secp, &tweak_value)
+            .expect("Tap tweak failed");
         TweakedKeyPair(self)
     }
 
@@ -229,8 +247,11 @@ impl SchnorrSig {
                 // default type
                 let sig = secp256k1::schnorr::Signature::from_slice(sl)
                     .map_err(SchnorrSigError::Secp256k1)?;
-                return Ok( SchnorrSig { sig, hash_ty : SchnorrSigHashType::Default });
-            },
+                return Ok(SchnorrSig {
+                    sig,
+                    hash_ty: SchnorrSigHashType::Default,
+                });
+            }
             65 => {
                 let (hash_ty, sig) = sl.split_last().expect("Slice len checked == 65");
                 let hash_ty = SchnorrSigHashType::from_u8(*hash_ty)
@@ -239,9 +260,7 @@ impl SchnorrSig {
                     .map_err(SchnorrSigError::Secp256k1)?;
                 Ok(SchnorrSig { sig, hash_ty })
             }
-            len => {
-                Err(SchnorrSigError::InvalidSchnorrSigSize(len))
-            }
+            len => Err(SchnorrSigError::InvalidSchnorrSigSize(len)),
         }
     }
 
@@ -256,7 +275,6 @@ impl SchnorrSig {
         }
         ser_sig
     }
-
 }
 
 /// A schnorr sig related error.
@@ -270,16 +288,20 @@ pub enum SchnorrSigError {
     InvalidSchnorrSigSize(usize),
 }
 
-
 impl fmt::Display for SchnorrSigError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            SchnorrSigError::InvalidSighashType(hash_ty) =>
-                write!(f, "Invalid signature hash type {}", hash_ty),
-            SchnorrSigError::Secp256k1(ref e) =>
-                write!(f, "Schnorr Signature has correct len, but is malformed : {}", e),
-            SchnorrSigError::InvalidSchnorrSigSize(sz) =>
-                write!(f, "Invalid Schnorr signature size: {}", sz),
+            SchnorrSigError::InvalidSighashType(hash_ty) => {
+                write!(f, "Invalid signature hash type {}", hash_ty)
+            }
+            SchnorrSigError::Secp256k1(ref e) => write!(
+                f,
+                "Schnorr Signature has correct len, but is malformed : {}",
+                e
+            ),
+            SchnorrSigError::InvalidSchnorrSigSize(sz) => {
+                write!(f, "Invalid Schnorr signature size: {}", sz)
+            }
         }
     }
 }
@@ -289,7 +311,6 @@ impl fmt::Display for SchnorrSigError {
 impl ::std::error::Error for SchnorrSigError {}
 
 impl From<secp256k1::Error> for SchnorrSigError {
-
     fn from(e: secp256k1::Error) -> SchnorrSigError {
         SchnorrSigError::Secp256k1(e)
     }

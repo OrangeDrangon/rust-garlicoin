@@ -1,33 +1,43 @@
-extern crate bitcoin;
-use std::str::FromStr;
+extern crate garlicoin;
 use std::convert::Into;
+use std::str::FromStr;
 
 fn do_test(data: &[u8]) {
     macro_rules! read_ints {
-        ($start: expr) => { {
+        ($start: expr) => {{
             let mut native = 0;
             for c in data[$start..$start + 16].iter() {
                 native <<= 8;
                 native |= (*c) as u128;
             }
             // Note BE:
-            let uint128 = bitcoin::util::uint::Uint128::from(&[native as u64, (native >> 8*8) as u64][..]);
+            let uint128 = garlicoin::util::uint::Uint128::from(
+                &[native as u64, (native >> 8 * 8) as u64][..],
+            );
 
             // Checking two conversion methods against each other
             let mut slice = [0u8; 16];
             slice.copy_from_slice(&data[$start..$start + 16]);
-            assert_eq!(uint128, bitcoin::util::uint::Uint128::from_be_bytes(slice));
+            assert_eq!(
+                uint128,
+                garlicoin::util::uint::Uint128::from_be_bytes(slice)
+            );
 
             (native, uint128)
-        } }
+        }};
     }
     macro_rules! check_eq {
-        ($native: expr, $uint: expr) => { {
-            assert_eq!(&[$native as u64, ($native >> 8*8) as u64], $uint.as_bytes());
-        } }
+        ($native: expr, $uint: expr) => {{
+            assert_eq!(
+                &[$native as u64, ($native >> 8 * 8) as u64],
+                $uint.as_bytes()
+            );
+        }};
     }
 
-    if data.len() != 16*2 { return; }
+    if data.len() != 16 * 2 {
+        return;
+    }
     let (a_native, a) = read_ints!(0);
 
     // Checks using only a:
@@ -38,7 +48,12 @@ fn do_test(data: &[u8]) {
     assert_eq!(a_native as u64, a.low_u64());
     assert_eq!(a_native as u32, a.low_u32());
     assert_eq!(128 - a_native.leading_zeros() as usize, a.bits());
-    assert_eq!(a_native as u64, bitcoin::util::uint::Uint128::from_u64(a_native as u64).unwrap().low_u64());
+    assert_eq!(
+        a_native as u64,
+        garlicoin::util::uint::Uint128::from_u64(a_native as u64)
+            .unwrap()
+            .low_u64()
+    );
 
     let mut a_inc = a.clone();
     a_inc.increment();
@@ -57,7 +72,10 @@ fn do_test(data: &[u8]) {
     check_eq!(a_native & b_native, a & b);
     check_eq!(a_native | b_native, a | b);
     check_eq!(a_native ^ b_native, a ^ b);
-    check_eq!(a_native.wrapping_mul((b_native as u32) as u128), a.mul_u32(b.low_u32()));
+    check_eq!(
+        a_native.wrapping_mul((b_native as u32) as u128),
+        a.mul_u32(b.low_u32())
+    );
 
     assert_eq!(a_native > b_native, a > b);
     assert_eq!(a_native >= b_native, a >= b);
@@ -66,7 +84,8 @@ fn do_test(data: &[u8]) {
 }
 
 #[cfg(feature = "afl")]
-#[macro_use] extern crate afl;
+#[macro_use]
+extern crate afl;
 #[cfg(feature = "afl")]
 fn main() {
     fuzz!(|data| {
@@ -75,7 +94,8 @@ fn main() {
 }
 
 #[cfg(feature = "honggfuzz")]
-#[macro_use] extern crate honggfuzz;
+#[macro_use]
+extern crate honggfuzz;
 #[cfg(feature = "honggfuzz")]
 fn main() {
     loop {
@@ -107,7 +127,10 @@ mod tests {
     #[test]
     fn duplicate_crash() {
         let mut a = Vec::new();
-        extend_vec_from_hex("100000a70000000000000000000000000000000000000000000000000000000054", &mut a);
+        extend_vec_from_hex(
+            "100000a70000000000000000000000000000000000000000000000000000000054",
+            &mut a,
+        );
         super::do_test(&a);
     }
 }

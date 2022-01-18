@@ -1,4 +1,4 @@
-//! Bitcoin Client Side Block Filtering network messages.
+//! Garlicoin Client Side Block Filtering network messages.
 //!
 //! This module describes BIP157 Client Side Block Filtering network messages.
 //!
@@ -22,7 +22,7 @@ impl_consensus_encoding!(GetCFilters, filter_type, start_height, stop_hash);
 pub struct CFilter {
     /// Byte identifying the type of filter being returned
     pub filter_type: u8,
-    /// Block hash of the Bitcoin block for which the filter is being returned
+    /// Block hash of the Garlicoin block for which the filter is being returned
     pub block_hash: BlockHash,
     /// The serialized compact filter for this block
     pub filter: Vec<u8>,
@@ -53,7 +53,13 @@ pub struct CFHeaders {
     /// The filter hashes for each block in the requested range
     pub filter_hashes: Vec<FilterHash>,
 }
-impl_consensus_encoding!(CFHeaders, filter_type, stop_hash, previous_filter_header, filter_hashes);
+impl_consensus_encoding!(
+    CFHeaders,
+    filter_type,
+    stop_hash,
+    previous_filter_header,
+    filter_hashes
+);
 
 /// getcfcheckpt message
 #[derive(PartialEq, Eq, Clone, Debug)]

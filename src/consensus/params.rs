@@ -1,4 +1,4 @@
-// Rust Bitcoin Library
+// Rust Garlicoin Library
 // Written in 2014 by
 //   Andrew Poelstra <apoelstra@wpsoftware.net>
 //
@@ -12,9 +12,9 @@
 // If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 //
 
-//! Bitcoin consensus parameters.
+//! Garlicoin consensus parameters.
 //!
-//! This module provides a predefined set of parameters for different Bitcoin
+//! This module provides a predefined set of parameters for different Garlicoin
 //! chains (such as mainnet, testnet).
 //!
 
@@ -71,12 +71,12 @@ pub struct Params {
     pub miner_confirmation_window: u32,
     /// Proof of work limit value. It contains the lowest possible difficulty.
     ///
-    /// Note that this value differs from Bitcoin Core's powLimit field in that this value is
-    /// attainable, but Bitcoin Core's is not. Specifically, because targets in Bitcoin are always
+    /// Note that this value differs from Garlicoin Core's powLimit field in that this value is
+    /// attainable, but Garlicoin Core's is not. Specifically, because targets in Garlicoin are always
     /// rounded to the nearest float expressible in "compact form", not all targets are attainable.
     /// Still, this should not affect consensus as the only place where the non-compact form of
-    /// this is used in Bitcoin Core's consensus algorithm is in comparison and there are no
-    /// compact-expressible values between Bitcoin Core's and the limit expressed here.
+    /// this is used in Garlicoin Core's consensus algorithm is in comparison and there are no
+    /// compact-expressible values between Garlicoin Core's and the limit expressed here.
     pub pow_limit: Uint256,
     /// Expected amount of time to mine one block.
     pub pow_target_spacing: u64,
@@ -92,8 +92,8 @@ impl Params {
     /// Creates parameters set for the given network.
     pub fn new(network: Network) -> Self {
         match network {
-            Network::Bitcoin => Params {
-                network: Network::Bitcoin,
+            Network::Garlicoin => Params {
+                network: Network::Garlicoin,
                 bip16_time: 1333238400,                 // Apr 1 2012
                 bip34_height: 227931, // 000000000000024b89b42a942fe0d9fea3bb44ab7bd1b19115dd6a759c0808b8
                 bip65_height: 388381, // 000000000000000004c2b624ed5d7756c508d90fd0da2c7c679febfa6c4735f0
@@ -122,7 +122,7 @@ impl Params {
             },
             Network::Signet => Params {
                 network: Network::Signet,
-                bip16_time: 1333238400,                 // Apr 1 2012
+                bip16_time: 1333238400, // Apr 1 2012
                 bip34_height: 1,
                 bip65_height: 1,
                 bip66_height: 1,

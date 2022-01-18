@@ -1,6 +1,6 @@
-// Rust Bitcoin Library
+// Rust Garlicoin Library
 // Written by
-//   The Rust Bitcoin developers
+//   The Rust Garlicoin developers
 //
 // To the extent possible under law, the author(s) have dedicated all
 // copyright and related and neighboring rights to this software to
@@ -14,18 +14,18 @@
 
 use prelude::*;
 
-use io::{self, Cursor, Read};
 use core::cmp;
+use io::{self, Cursor, Read};
 
 use blockdata::transaction::Transaction;
-use consensus::{encode, Encodable, Decodable};
 use consensus::encode::MAX_VEC_SIZE;
-use util::psbt::map::Map;
-use util::psbt::{raw, PartiallySignedTransaction};
-use util::psbt;
-use util::psbt::Error;
+use consensus::{encode, Decodable, Encodable};
+use util::bip32::{ChildNumber, DerivationPath, ExtendedPubKey, Fingerprint};
 use util::endian::u32_to_array_le;
-use util::bip32::{ExtendedPubKey, Fingerprint, DerivationPath, ChildNumber};
+use util::psbt;
+use util::psbt::map::Map;
+use util::psbt::Error;
+use util::psbt::{raw, PartiallySignedTransaction};
 
 /// Type: Unsigned Transaction PSBT_GLOBAL_UNSIGNED_TX = 0x00
 const PSBT_GLOBAL_UNSIGNED_TX: u8 = 0x00;
@@ -66,9 +66,11 @@ impl Map for PartiallySignedTransaction {
                 value: {
                     let mut ret = Vec::with_capacity(4 + derivation.len() * 4);
                     ret.extend(fingerprint.as_bytes());
-                    derivation.into_iter().for_each(|n| ret.extend(&u32_to_array_le((*n).into())));
+                    derivation
+                        .into_iter()
+                        .for_each(|n| ret.extend(&u32_to_array_le((*n).into())));
                     ret
-                }
+                },
             });
         }
 
@@ -79,7 +81,7 @@ impl Map for PartiallySignedTransaction {
                     type_value: PSBT_GLOBAL_VERSION,
                     key: vec![],
                 },
-                value: u32_to_array_le(self.version).to_vec()
+                value: u32_to_array_le(self.version).to_vec(),
             });
         }
 
@@ -121,7 +123,7 @@ impl Map for PartiallySignedTransaction {
             match self.xpub.entry(xpub) {
                 btree_map::Entry::Vacant(entry) => {
                     entry.insert((fingerprint1, derivation1));
-                },
+                }
                 btree_map::Entry::Occupied(mut entry) => {
                     // Here in case of the conflict we select the version with algorithm:
                     // 1) if everything is equal we do nothing
@@ -134,15 +136,17 @@ impl Map for PartiallySignedTransaction {
 
                     let (fingerprint2, derivation2) = entry.get().clone();
 
-                    if (derivation1 == derivation2 && fingerprint1 == fingerprint2) ||
-                        (derivation1.len() < derivation2.len() && derivation1[..] == derivation2[derivation2.len() - derivation1.len()..])
+                    if (derivation1 == derivation2 && fingerprint1 == fingerprint2)
+                        || (derivation1.len() < derivation2.len()
+                            && derivation1[..]
+                                == derivation2[derivation2.len() - derivation1.len()..])
                     {
-                        continue
-                    }
-                    else if derivation2[..] == derivation1[derivation1.len() - derivation2.len()..]
+                        continue;
+                    } else if derivation2[..]
+                        == derivation1[derivation1.len() - derivation2.len()..]
                     {
                         entry.insert((fingerprint1, derivation1));
-                        continue
+                        continue;
                     }
                     return Err(psbt::Error::MergeInconsistentKeySources(xpub));
                 }
@@ -170,7 +174,8 @@ impl PartiallySignedTransaction {
         let mut tx: Option<Transaction> = None;
         let mut version: Option<u32> = None;
         let mut unknowns: BTreeMap<raw::Key, Vec<u8>> = Default::default();
-        let mut xpub_map: BTreeMap<ExtendedPubKey, (Fingerprint, DerivationPath)> = Default::default();
+        let mut xpub_map: BTreeMap<ExtendedPubKey, (Fingerprint, DerivationPath)> =
+            Default::default();
         let mut proprietary: BTreeMap<raw::ProprietaryKey, Vec<u8>> = Default::default();
 
         loop {
@@ -196,13 +201,13 @@ impl PartiallySignedTransaction {
                                     });
 
                                     if decoder.position() != vlen as u64 {
-                                        return Err(encode::Error::ParseFailed("data not consumed entirely when explicitly deserializing"))
+                                        return Err(encode::Error::ParseFailed("data not consumed entirely when explicitly deserializing"));
                                     }
                                 } else {
-                                    return Err(Error::DuplicateKey(pair.key).into())
+                                    return Err(Error::DuplicateKey(pair.key).into());
                                 }
                             } else {
-                                return Err(Error::InvalidKey(pair.key).into())
+                                return Err(Error::InvalidKey(pair.key).into());
                             }
                         }
                         PSBT_GLOBAL_XPUB => {
@@ -213,7 +218,9 @@ impl PartiallySignedTransaction {
                                     ))?;
 
                                 if pair.value.is_empty() || pair.value.len() % 4 != 0 {
-                                    return Err(encode::Error::ParseFailed("Incorrect length of global xpub derivation data"))
+                                    return Err(encode::Error::ParseFailed(
+                                        "Incorrect length of global xpub derivation data",
+                                    ));
                                 }
 
                                 let child_count = pair.value.len() / 4 - 1;
@@ -226,11 +233,18 @@ impl PartiallySignedTransaction {
                                 }
                                 let derivation = DerivationPath::from(path);
                                 // Keys, according to BIP-174, must be unique
-                                if xpub_map.insert(xpub, (Fingerprint::from(&fingerprint[..]), derivation)).is_some() {
-                                    return Err(encode::Error::ParseFailed("Repeated global xpub key"))
+                                if xpub_map
+                                    .insert(xpub, (Fingerprint::from(&fingerprint[..]), derivation))
+                                    .is_some()
+                                {
+                                    return Err(encode::Error::ParseFailed(
+                                        "Repeated global xpub key",
+                                    ));
                                 }
                             } else {
-                                return Err(encode::Error::ParseFailed("Xpub global key must contain serialized Xpub data"))
+                                return Err(encode::Error::ParseFailed(
+                                    "Xpub global key must contain serialized Xpub data",
+                                ));
                             }
                         }
                         PSBT_GLOBAL_VERSION => {
@@ -241,33 +255,43 @@ impl PartiallySignedTransaction {
                                     let vlen: usize = pair.value.len();
                                     let mut decoder = Cursor::new(pair.value);
                                     if vlen != 4 {
-                                        return Err(encode::Error::ParseFailed("Wrong global version value length (must be 4 bytes)"))
+                                        return Err(encode::Error::ParseFailed(
+                                            "Wrong global version value length (must be 4 bytes)",
+                                        ));
                                     }
                                     version = Some(Decodable::consensus_decode(&mut decoder)?);
                                     // We only understand version 0 PSBTs. According to BIP-174 we
                                     // should throw an error if we see anything other than version 0.
                                     if version != Some(0) {
-                                        return Err(encode::Error::ParseFailed("PSBT versions greater than 0 are not supported"))
+                                        return Err(encode::Error::ParseFailed(
+                                            "PSBT versions greater than 0 are not supported",
+                                        ));
                                     }
                                 } else {
-                                    return Err(Error::DuplicateKey(pair.key).into())
+                                    return Err(Error::DuplicateKey(pair.key).into());
                                 }
                             } else {
-                                return Err(Error::InvalidKey(pair.key).into())
+                                return Err(Error::InvalidKey(pair.key).into());
                             }
                         }
-                        PSBT_GLOBAL_PROPRIETARY => match proprietary.entry(raw::ProprietaryKey::from_key(pair.key.clone())?) {
+                        PSBT_GLOBAL_PROPRIETARY => match proprietary
+                            .entry(raw::ProprietaryKey::from_key(pair.key.clone())?)
+                        {
                             btree_map::Entry::Vacant(empty_key) => {
                                 empty_key.insert(pair.value);
-                            },
-                            btree_map::Entry::Occupied(_) => return Err(Error::DuplicateKey(pair.key).into()),
-                        }
+                            }
+                            btree_map::Entry::Occupied(_) => {
+                                return Err(Error::DuplicateKey(pair.key).into())
+                            }
+                        },
                         _ => match unknowns.entry(pair.key) {
                             btree_map::Entry::Vacant(empty_key) => {
                                 empty_key.insert(pair.value);
-                            },
-                            btree_map::Entry::Occupied(k) => return Err(Error::DuplicateKey(k.key().clone()).into()),
-                        }
+                            }
+                            btree_map::Entry::Occupied(k) => {
+                                return Err(Error::DuplicateKey(k.key().clone()).into())
+                            }
+                        },
                     }
                 }
                 Err(::consensus::encode::Error::Psbt(::util::psbt::Error::NoMorePairs)) => break,
@@ -283,7 +307,7 @@ impl PartiallySignedTransaction {
                 proprietary,
                 unknown: unknowns,
                 inputs: vec![],
-                outputs: vec![]
+                outputs: vec![],
             })
         } else {
             Err(Error::MustHaveUnsignedTx.into())

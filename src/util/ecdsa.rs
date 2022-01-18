@@ -1,4 +1,4 @@
-// Rust Bitcoin Library
+// Rust Garlicoin Library
 // Written in 2014 by
 //     Andrew Poelstra <apoelstra@wpsoftware.net>
 //
@@ -12,15 +12,15 @@
 // If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 //
 
-//! ECDSA Bitcoin signatures.
+//! ECDSA Garlicoin signatures.
 //!
-//! This module provides ECDSA signatures used Bitcoin that can be roundtrip (de)serialized.
+//! This module provides ECDSA signatures used Garlicoin that can be roundtrip (de)serialized.
 
-use prelude::*;
+use blockdata::transaction::NonStandardSigHashType;
 use core::str::FromStr;
 use core::{fmt, iter};
 use hashes::hex::{self, FromHex};
-use blockdata::transaction::NonStandardSigHashType;
+use prelude::*;
 use secp256k1;
 use EcdsaSigHashType;
 
@@ -35,30 +35,30 @@ pub struct EcdsaSig {
 }
 
 impl EcdsaSig {
-    /// Constructs ECDSA bitcoin signature for [`EcdsaSigHashType::All`]
+    /// Constructs ECDSA garlicoin signature for [`EcdsaSigHashType::All`]
     pub fn sighash_all(sig: secp256k1::ecdsa::Signature) -> EcdsaSig {
         EcdsaSig {
             sig,
-            hash_ty: EcdsaSigHashType::All
+            hash_ty: EcdsaSigHashType::All,
         }
     }
 
     /// Deserialize from slice following the standardness rules for [`EcdsaSigHashType`]
     pub fn from_slice(sl: &[u8]) -> Result<Self, EcdsaSigError> {
-        let (hash_ty, sig) = sl.split_last()
-            .ok_or(EcdsaSigError::EmptySignature)?;
+        let (hash_ty, sig) = sl.split_last().ok_or(EcdsaSigError::EmptySignature)?;
         let hash_ty = EcdsaSigHashType::from_u32_standard(*hash_ty as u32)
             .map_err(|_| EcdsaSigError::NonStandardSigHashType(*hash_ty as u32))?;
-        let sig = secp256k1::ecdsa::Signature::from_der(sig)
-            .map_err(EcdsaSigError::Secp256k1)?;
+        let sig = secp256k1::ecdsa::Signature::from_der(sig).map_err(EcdsaSigError::Secp256k1)?;
         Ok(EcdsaSig { sig, hash_ty })
     }
 
     /// Serialize EcdsaSig
     pub fn to_vec(&self) -> Vec<u8> {
         // TODO: add support to serialize to a writer to SerializedSig
-        self.sig.serialize_der()
-            .iter().map(|x| *x)
+        self.sig
+            .serialize_der()
+            .iter()
+            .map(|x| *x)
             .chain(iter::once(self.hash_ty as u8))
             .collect()
     }
@@ -76,11 +76,10 @@ impl FromStr for EcdsaSig {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let bytes = Vec::from_hex(s)?;
-        let (sighash_byte, signature) = bytes.split_last()
-            .ok_or(EcdsaSigError::EmptySignature)?;
+        let (sighash_byte, signature) = bytes.split_last().ok_or(EcdsaSigError::EmptySignature)?;
         Ok(EcdsaSig {
             sig: secp256k1::ecdsa::Signature::from_der(signature)?,
-            hash_ty: EcdsaSigHashType::from_u32_standard(*sighash_byte as u32)?
+            hash_ty: EcdsaSigHashType::from_u32_standard(*sighash_byte as u32)?,
         })
     }
 }
@@ -98,17 +97,15 @@ pub enum EcdsaSigError {
     Secp256k1(secp256k1::Error),
 }
 
-
 impl fmt::Display for EcdsaSigError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            EcdsaSigError::NonStandardSigHashType(hash_ty) =>
-                write!(f, "Non standard signature hash type {}", hash_ty),
-            EcdsaSigError::Secp256k1(ref e) =>
-                write!(f, "Invalid Ecdsa signature: {}", e),
-            EcdsaSigError::EmptySignature =>
-                write!(f, "Empty ECDSA signature"),
-            EcdsaSigError::HexEncoding(e) => write!(f, "EcdsaSig hex encoding error: {}", e)
+            EcdsaSigError::NonStandardSigHashType(hash_ty) => {
+                write!(f, "Non standard signature hash type {}", hash_ty)
+            }
+            EcdsaSigError::Secp256k1(ref e) => write!(f, "Invalid Ecdsa signature: {}", e),
+            EcdsaSigError::EmptySignature => write!(f, "Empty ECDSA signature"),
+            EcdsaSigError::HexEncoding(e) => write!(f, "EcdsaSig hex encoding error: {}", e),
         }
     }
 }

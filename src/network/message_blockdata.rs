@@ -1,4 +1,4 @@
-// Rust Bitcoin Library
+// Rust Garlicoin Library
 // Written in 2014 by
 //     Andrew Poelstra <apoelstra@wpsoftware.net>
 //
@@ -12,10 +12,10 @@
 // If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 //
 
-//! Bitcoin blockdata network messages.
+//! Garlicoin blockdata network messages.
 //!
 //! This module describes network messages which are used for passing
-//! Bitcoin data (blocks and transactions) around.
+//! Garlicoin data (blocks and transactions) around.
 //!
 
 use prelude::*;
@@ -24,9 +24,9 @@ use io;
 
 use hashes::sha256d;
 
-use network::constants;
 use consensus::encode::{self, Decodable, Encodable};
 use hash_types::{BlockHash, Txid, Wtxid};
+use network::constants;
 
 /// An inventory item.
 #[derive(PartialEq, Eq, Clone, Debug, Copy, Hash, PartialOrd, Ord)]
@@ -49,20 +49,16 @@ pub enum Inventory {
         inv_type: u32,
         /// The hash of the inventory item
         hash: [u8; 32],
-    }
+    },
 }
 
 impl Encodable for Inventory {
     #[inline]
-    fn consensus_encode<S: io::Write>(
-        &self,
-        mut s: S,
-    ) -> Result<usize, io::Error> {
+    fn consensus_encode<S: io::Write>(&self, mut s: S) -> Result<usize, io::Error> {
         macro_rules! encode_inv {
             ($code:expr, $item:expr) => {
-                u32::consensus_encode(&$code, &mut s)? +
-                $item.consensus_encode(&mut s)?
-            }
+                u32::consensus_encode(&$code, &mut s)? + $item.consensus_encode(&mut s)?
+            };
         }
         Ok(match *self {
             Inventory::Error => encode_inv!(0, sha256d::Hash::default()),
@@ -71,7 +67,10 @@ impl Encodable for Inventory {
             Inventory::WTx(w) => encode_inv!(5, w),
             Inventory::WitnessTransaction(ref t) => encode_inv!(0x40000001, t),
             Inventory::WitnessBlock(ref b) => encode_inv!(0x40000002, b),
-            Inventory::Unknown { inv_type: t, hash: ref d } => encode_inv!(t, d),
+            Inventory::Unknown {
+                inv_type: t,
+                hash: ref d,
+            } => encode_inv!(t, d),
         })
     }
 }
@@ -90,7 +89,7 @@ impl Decodable for Inventory {
             tp => Inventory::Unknown {
                 inv_type: tp,
                 hash: Decodable::consensus_decode(&mut d)?,
-            }
+            },
         })
     }
 }
@@ -120,7 +119,7 @@ pub struct GetHeadersMessage {
     /// if possible and block 1 otherwise.
     pub locator_hashes: Vec<BlockHash>,
     /// References the header to stop at, or zero to just fetch the maximum 2000 headers
-    pub stop_hash: BlockHash
+    pub stop_hash: BlockHash,
 }
 
 impl GetBlocksMessage {
@@ -151,7 +150,7 @@ impl_consensus_encoding!(GetHeadersMessage, version, locator_hashes, stop_hash);
 
 #[cfg(test)]
 mod tests {
-    use super::{Vec, GetHeadersMessage, GetBlocksMessage};
+    use super::{GetBlocksMessage, GetHeadersMessage, Vec};
 
     use hashes::hex::FromHex;
 
@@ -161,7 +160,9 @@ mod tests {
     #[test]
     fn getblocks_message_test() {
         let from_sat = Vec::from_hex("72110100014a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b0000000000000000000000000000000000000000000000000000000000000000").unwrap();
-        let genhash = Vec::from_hex("4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b").unwrap();
+        let genhash =
+            Vec::from_hex("4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b")
+                .unwrap();
 
         let decode: Result<GetBlocksMessage, _> = deserialize(&from_sat);
         assert!(decode.is_ok());
@@ -177,7 +178,9 @@ mod tests {
     #[test]
     fn getheaders_message_test() {
         let from_sat = Vec::from_hex("72110100014a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b0000000000000000000000000000000000000000000000000000000000000000").unwrap();
-        let genhash = Vec::from_hex("4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b").unwrap();
+        let genhash =
+            Vec::from_hex("4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b")
+                .unwrap();
 
         let decode: Result<GetHeadersMessage, _> = deserialize(&from_sat);
         assert!(decode.is_ok());
@@ -190,4 +193,3 @@ mod tests {
         assert_eq!(serialize(&real_decode), from_sat);
     }
 }
-

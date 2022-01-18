@@ -1,7 +1,7 @@
-extern crate bitcoin;
+extern crate garlicoin;
 
-use bitcoin::consensus::{serialize, deserialize};
-use bitcoin::blockdata::witness::Witness;
+use garlicoin::blockdata::witness::Witness;
+use garlicoin::consensus::{deserialize, serialize};
 
 fn do_test(data: &[u8]) {
     let w: Result<Witness, _> = deserialize(data);
@@ -12,7 +12,8 @@ fn do_test(data: &[u8]) {
 }
 
 #[cfg(feature = "afl")]
-#[macro_use] extern crate afl;
+#[macro_use]
+extern crate afl;
 #[cfg(feature = "afl")]
 fn main() {
     fuzz!(|data| {
@@ -21,7 +22,8 @@ fn main() {
 }
 
 #[cfg(feature = "honggfuzz")]
-#[macro_use] extern crate honggfuzz;
+#[macro_use]
+extern crate honggfuzz;
 #[cfg(feature = "honggfuzz")]
 fn main() {
     loop {

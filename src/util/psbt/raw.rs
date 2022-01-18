@@ -1,6 +1,6 @@
-// Rust Bitcoin Library
+// Rust Garlicoin Library
 // Written by
-//   The Rust Bitcoin developers
+//   The Rust Garlicoin developers
 //
 // To the extent possible under law, the author(s) have dedicated all
 // copyright and related and neighboring rights to this software to
@@ -15,15 +15,17 @@
 //! Raw PSBT key-value pairs.
 //!
 //! Raw PSBT key-value pairs as defined at
-//! <https://github.com/bitcoin/bips/blob/master/bip-0174.mediawiki>.
+//! <https://github.com/garlicoin/bips/blob/master/bip-0174.mediawiki>.
 //!
 
-use prelude::*;
 use core::fmt;
+use prelude::*;
 
-use io;
-use consensus::encode::{self, ReadExt, WriteExt, Decodable, Encodable, VarInt, serialize, deserialize, MAX_VEC_SIZE};
+use consensus::encode::{
+    self, deserialize, serialize, Decodable, Encodable, ReadExt, VarInt, WriteExt, MAX_VEC_SIZE,
+};
 use hashes::hex;
+use io;
 use util::psbt::Error;
 use util::read_to_end;
 
@@ -56,7 +58,10 @@ pub type ProprietaryType = u8;
 /// structure according to BIP 174.
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-pub struct ProprietaryKey<Subtype = ProprietaryType> where Subtype: Copy + From<u8> + Into<u8> {
+pub struct ProprietaryKey<Subtype = ProprietaryType>
+where
+    Subtype: Copy + From<u8> + Into<u8>,
+{
     /// Proprietary type prefix used for grouping together keys under some
     /// application and avoid namespace collision
     #[cfg_attr(feature = "serde", serde(with = "::serde_utils::hex_bytes"))]
@@ -89,7 +94,7 @@ impl Decodable for Key {
             return Err(encode::Error::OversizedVectorAllocation {
                 requested: key_byte_size as usize,
                 max: MAX_VEC_SIZE,
-            })
+            });
         }
 
         let type_value: u8 = Decodable::consensus_decode(&mut d)?;
@@ -99,18 +104,12 @@ impl Decodable for Key {
             key.push(Decodable::consensus_decode(&mut d)?);
         }
 
-        Ok(Key {
-            type_value,
-            key,
-        })
+        Ok(Key { type_value, key })
     }
 }
 
 impl Encodable for Key {
-    fn consensus_encode<S: io::Write>(
-        &self,
-        mut s: S,
-    ) -> Result<usize, io::Error> {
+    fn consensus_encode<S: io::Write>(&self, mut s: S) -> Result<usize, io::Error> {
         let mut len = 0;
         len += VarInt((self.key.len() + 1) as u64).consensus_encode(&mut s)?;
 
@@ -125,10 +124,7 @@ impl Encodable for Key {
 }
 
 impl Encodable for Pair {
-    fn consensus_encode<S: io::Write>(
-        &self,
-        mut s: S,
-    ) -> Result<usize, io::Error> {
+    fn consensus_encode<S: io::Write>(&self, mut s: S) -> Result<usize, io::Error> {
         let len = self.key.consensus_encode(&mut s)?;
         Ok(len + self.value.consensus_encode(s)?)
     }
@@ -143,7 +139,10 @@ impl Decodable for Pair {
     }
 }
 
-impl<Subtype> Encodable for ProprietaryKey<Subtype> where Subtype: Copy + From<u8> + Into<u8> {
+impl<Subtype> Encodable for ProprietaryKey<Subtype>
+where
+    Subtype: Copy + From<u8> + Into<u8>,
+{
     fn consensus_encode<W: io::Write>(&self, mut e: W) -> Result<usize, io::Error> {
         let mut len = self.prefix.consensus_encode(&mut e)? + 1;
         e.emit_u8(self.subtype.into())?;
@@ -152,7 +151,10 @@ impl<Subtype> Encodable for ProprietaryKey<Subtype> where Subtype: Copy + From<u
     }
 }
 
-impl<Subtype> Decodable for ProprietaryKey<Subtype> where Subtype: Copy + From<u8> + Into<u8> {
+impl<Subtype> Decodable for ProprietaryKey<Subtype>
+where
+    Subtype: Copy + From<u8> + Into<u8>,
+{
     fn consensus_decode<D: io::Read>(mut d: D) -> Result<Self, encode::Error> {
         let prefix = Vec::<u8>::consensus_decode(&mut d)?;
         let subtype = Subtype::from(d.read_u8()?);
@@ -161,17 +163,20 @@ impl<Subtype> Decodable for ProprietaryKey<Subtype> where Subtype: Copy + From<u
         Ok(ProprietaryKey {
             prefix,
             subtype,
-            key
+            key,
         })
     }
 }
 
-impl<Subtype> ProprietaryKey<Subtype> where Subtype: Copy + From<u8> + Into<u8> {
+impl<Subtype> ProprietaryKey<Subtype>
+where
+    Subtype: Copy + From<u8> + Into<u8>,
+{
     /// Constructs [ProprietaryKey] from [Key]; returns
     /// [Error::InvalidProprietaryKey] if `key` do not starts with 0xFC byte
     pub fn from_key(key: Key) -> Result<Self, Error> {
         if key.type_value != 0xFC {
-            return Err(Error::InvalidProprietaryKey)
+            return Err(Error::InvalidProprietaryKey);
         }
 
         Ok(deserialize(&key.key)?)
@@ -181,7 +186,7 @@ impl<Subtype> ProprietaryKey<Subtype> where Subtype: Copy + From<u8> + Into<u8> 
     pub fn to_key(&self) -> Key {
         Key {
             type_value: 0xFC,
-            key: serialize(self)
+            key: serialize(self),
         }
     }
 }

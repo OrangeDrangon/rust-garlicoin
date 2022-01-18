@@ -12,7 +12,7 @@ use VarInt;
 #[cfg(feature = "serde")]
 use serde;
 
-/// The Witness is the data used to unlock bitcoins since the [segwit upgrade](https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki)
+/// The Witness is the data used to unlock bitcoins since the [segwit upgrade](https://github.com/garlicoin/bips/blob/master/bip-0143.mediawiki)
 ///
 /// Can be logically seen as an array of byte-arrays `Vec<Vec<u8>>` and indeed you can convert from
 /// it [`Witness::from_vec`] and convert into it [`Witness::to_vec`].
@@ -120,7 +120,6 @@ impl Encodable for Witness {
 }
 
 impl Witness {
-
     /// Create a new empty [`Witness`]
     pub fn new() -> Self {
         Witness::default()

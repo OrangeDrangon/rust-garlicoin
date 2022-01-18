@@ -1,6 +1,6 @@
-// Rust Bitcoin Library
+// Rust Garlicoin Library
 // Written by
-//   The Rust Bitcoin developers
+//   The Rust Garlicoin developers
 //
 // To the extent possible under law, the author(s) have dedicated all
 // copyright and related and neighboring rights to this software to
@@ -12,10 +12,10 @@
 // If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 //
 
-//! Partially Signed Bitcoin Transactions.
+//! Partially Signed Garlicoin Transactions.
 //!
-//! Implementation of BIP174 Partially Signed Bitcoin Transaction Format as
-//! defined at <https://github.com/bitcoin/bips/blob/master/bip-0174.mediawiki>
+//! Implementation of BIP174 Partially Signed Garlicoin Transaction Format as
+//! defined at <https://github.com/garlicoin/bips/blob/master/bip-0174.mediawiki>
 //! except we define PSBTs containing non-standard SigHash types as invalid.
 //!
 
@@ -253,7 +253,7 @@ mod tests {
 
     use blockdata::script::Script;
     use blockdata::transaction::{Transaction, TxIn, TxOut, OutPoint};
-    use network::constants::Network::Bitcoin;
+    use network::constants::Network::Garlicoin;
     use consensus::encode::{deserialize, serialize, serialize_hex};
     use util::bip32::{ChildNumber, ExtendedPrivKey, ExtendedPubKey, Fingerprint, KeySource};
     use util::psbt::map::{Output, Input};
@@ -292,7 +292,7 @@ mod tests {
 
         let mut hd_keypaths: BTreeMap<secp256k1::PublicKey, KeySource> = Default::default();
 
-        let mut sk: ExtendedPrivKey = ExtendedPrivKey::new_master(Bitcoin, &seed).unwrap();
+        let mut sk: ExtendedPrivKey = ExtendedPrivKey::new_master(Garlicoin, &seed).unwrap();
 
         let fprint: Fingerprint = sk.fingerprint(&secp);
 

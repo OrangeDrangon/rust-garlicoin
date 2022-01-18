@@ -1,4 +1,4 @@
-extern crate bitcoin;
+extern crate garlicoin;
 
 use std::fmt;
 
@@ -17,11 +17,12 @@ impl fmt::Write for NullWriter {
 
 fn do_test(data: &[u8]) {
     let mut writer = NullWriter;
-    bitcoin::Script::bytes_to_asm_fmt(data, &mut writer);
+    garlicoin::Script::bytes_to_asm_fmt(data, &mut writer);
 }
 
 #[cfg(feature = "afl")]
-#[macro_use] extern crate afl;
+#[macro_use]
+extern crate afl;
 #[cfg(feature = "afl")]
 fn main() {
     fuzz!(|data| {
@@ -30,7 +31,8 @@ fn main() {
 }
 
 #[cfg(feature = "honggfuzz")]
-#[macro_use] extern crate honggfuzz;
+#[macro_use]
+extern crate honggfuzz;
 #[cfg(feature = "honggfuzz")]
 fn main() {
     loop {

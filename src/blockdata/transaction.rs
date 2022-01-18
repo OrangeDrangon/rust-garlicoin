@@ -1,4 +1,4 @@
-// Rust Bitcoin Library
+// Rust Garlicoin Library
 // Written in 2014 by
 //     Andrew Poelstra <apoelstra@wpsoftware.net>
 //
@@ -12,7 +12,7 @@
 // If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 //
 
-//! Bitcoin transactions.
+//! Garlicoin transactions.
 //!
 //! A transaction describes a transfer of money. It consumes previously-unspent
 //! transaction outputs and produces new ones, satisfying the condition to spend
@@ -79,10 +79,10 @@ impl OutPoint {
     /// # Examples
     ///
     /// ```rust
-    /// use bitcoin::blockdata::constants::genesis_block;
-    /// use bitcoin::network::constants::Network;
+    /// use garlicoin::blockdata::constants::genesis_block;
+    /// use garlicoin::network::constants::Network;
     ///
-    /// let block = genesis_block(Network::Bitcoin);
+    /// let block = genesis_block(Network::Garlicoin);
     /// let tx = &block.txdata[0];
     ///
     /// // Coinbase transactions don't have any previous output.
@@ -229,7 +229,7 @@ impl Default for TxOut {
     }
 }
 
-/// A Bitcoin transaction, which describes an authenticated movement of coins.
+/// A Garlicoin transaction, which describes an authenticated movement of coins.
 ///
 /// If any inputs have nonempty witnesses, the entire transaction is serialized
 /// in the post-BIP141 Segwit format which includes a list of witnesses. If all
@@ -255,7 +255,7 @@ impl Default for TxOut {
 /// in the original transaction format (since it has no inputs and therefore
 /// no input witnesses), a traditionally encoded transaction may have the `0001`
 /// Segwit flag in it, which confuses most Segwit parsers including the one in
-/// Bitcoin Core.
+/// Garlicoin Core.
 ///
 /// We therefore deviate from the spec by always using the Segwit witness encoding
 /// for 0-input transactions, which results in unambiguously parseable transactions.
@@ -433,11 +433,11 @@ impl Transaction {
 
     /// Gets the "vsize" of this transaction. Will be `ceil(weight / 4.0)`.
     /// Note this implements the virtual size as per [`bip141`], which is different
-    /// to what is implemented in Bitcoin Core. The computation should be the same
+    /// to what is implemented in Garlicoin Core. The computation should be the same
     /// for any remotely sane transaction, and a standardness-rule-correct version
     /// is available in the [`policy`] module.
     ///
-    /// [`bip141`]: https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki
+    /// [`bip141`]: https://github.com/garlicoin/bips/blob/master/bip-0141.mediawiki
     /// [`policy`]: ../policy/mod.rs.html
     #[inline]
     pub fn get_vsize(&self) -> usize {
@@ -664,7 +664,7 @@ impl Decodable for Transaction {
 }
 
 /// This type is consensus valid but an input including it would prevent the transaction from
-/// being relayed on today's Bitcoin network.
+/// being relayed on today's Garlicoin network.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct NonStandardSigHashType(pub u32);
 
@@ -763,7 +763,7 @@ impl EcdsaSigHashType {
      /// `n`. While verifying signatures, the user should retain the `n` and use it compute the
      /// signature hash message.
      pub fn from_u32_consensus(n: u32) -> EcdsaSigHashType {
-         // In Bitcoin Core, the SignatureHash function will mask the (int32) value with
+         // In Garlicoin Core, the SignatureHash function will mask the (int32) value with
          // 0x1f to (apparently) deactivate ACP when checking for SINGLE and NONE bits.
          // We however want to be matching also against on ACP-masked ALL, SINGLE, and NONE.
          // So here we re-activate ACP.
@@ -786,7 +786,7 @@ impl EcdsaSigHashType {
      /// is non standard.
      pub fn from_u32_standard(n: u32) -> Result<EcdsaSigHashType, NonStandardSigHashType> {
          match n {
-             // Standard sighashes, see https://github.com/bitcoin/bitcoin/blob/b805dbb0b9c90dadef0424e5b3bf86ac308e103e/src/script/interpreter.cpp#L189-L198
+             // Standard sighashes, see https://github.com/garlicoin/garlicoin/blob/b805dbb0b9c90dadef0424e5b3bf86ac308e103e/src/script/interpreter.cpp#L189-L198
              0x01 => Ok(EcdsaSigHashType::All),
              0x02 => Ok(EcdsaSigHashType::None),
              0x03 => Ok(EcdsaSigHashType::Single),
@@ -896,7 +896,7 @@ mod tests {
         use network::constants::Network;
         use blockdata::constants;
 
-        let genesis = constants::genesis_block(Network::Bitcoin);
+        let genesis = constants::genesis_block(Network::Garlicoin);
         assert! (genesis.txdata[0].is_coin_base());
         let tx_bytes = Vec::from_hex("0100000001a15d57094aa7a21a28cb20b59aab8fc7d1149a3bdbcddba9c622e4f5f6a99ece010000006c493046022100f93bb0e7d8db7bd46e40132d1f8242026e045f03a0efe71bbb8e3f475e970d790221009337cd7f1f929f00cc6ff01f03729b069a7c21b59b1736ddfee5db5946c5da8c0121033b9b137ee87d5a812d6f506efdd37f0affa7ffc310711c06c7f3e097c9447c52ffffffff0100e1f505000000001976a9140389035a9225b3839e2bbf32d826a1e222031fd888ac00000000").unwrap();
         let tx: Transaction = deserialize(&tx_bytes).unwrap();
@@ -913,7 +913,7 @@ mod tests {
         // will also fail. But these will show you where the failure is so I'll leave them in.
         assert_eq!(realtx.version, 1);
         assert_eq!(realtx.input.len(), 1);
-        // In particular this one is easy to get backward -- in bitcoin hashes are encoded
+        // In particular this one is easy to get backward -- in garlicoin hashes are encoded
         // as little-endian 256-bit numbers rather than as data strings.
         assert_eq!(format!("{:x}", realtx.input[0].previous_output.txid),
                    "ce9ea9f6f5e422c6a9dbcddb3b9a14d1c78fab9ab520cb281aa2a74a09575da1".to_string());
@@ -947,7 +947,7 @@ mod tests {
         // will also fail. But these will show you where the failure is so I'll leave them in.
         assert_eq!(realtx.version, 2);
         assert_eq!(realtx.input.len(), 1);
-        // In particular this one is easy to get backward -- in bitcoin hashes are encoded
+        // In particular this one is easy to get backward -- in garlicoin hashes are encoded
         // as little-endian 256-bit numbers rather than as data strings.
         assert_eq!(format!("{:x}", realtx.input[0].previous_output.txid),
                    "7cac3cf9a112cf04901a51d605058615d56ffe6d04b45270e89d1720ea955859".to_string());

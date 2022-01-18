@@ -1,4 +1,4 @@
-// Rust Bitcoin Library
+// Rust Garlicoin Library
 // Written in 2014 by
 //     Andrew Poelstra <apoelstra@wpsoftware.net>
 //
@@ -14,36 +14,37 @@
 
 //! Utility functions.
 //!
-//! Functions needed by all parts of the Bitcoin library.
+//! Functions needed by all parts of the Garlicoin library.
 //!
 
-pub mod key;
-pub mod ecdsa;
-pub mod schnorr;
 pub mod address;
 pub mod amount;
 pub mod base58;
-pub mod bip32;
 pub mod bip143;
+pub mod bip158;
+pub mod bip32;
 pub mod contracthash;
+pub mod ecdsa;
 pub mod hash;
+pub mod key;
 pub mod merkleblock;
 pub mod misc;
 pub mod psbt;
+pub mod schnorr;
+pub mod sighash;
 pub mod taproot;
 pub mod uint;
-pub mod bip158;
-pub mod sighash;
 
 pub(crate) mod endian;
 
-use prelude::*;
-use io;
 use core::fmt;
-#[cfg(feature = "std")] use std::error;
+use io;
+use prelude::*;
+#[cfg(feature = "std")]
+use std::error;
 
-use network;
 use consensus::encode;
+use network;
 
 /// A trait which allows numbers to act as fixed-size bit arrays
 pub trait BitArray {
@@ -93,11 +94,11 @@ impl fmt::Display for Error {
 
 #[cfg(feature = "std")]
 impl ::std::error::Error for Error {
-    fn cause(&self) -> Option<&dyn  error::Error> {
+    fn cause(&self) -> Option<&dyn error::Error> {
         match *self {
             Error::Encode(ref e) => Some(e),
             Error::Network(ref e) => Some(e),
-            Error::BlockBadProofOfWork | Error::BlockBadTarget => None
+            Error::BlockBadProofOfWork | Error::BlockBadTarget => None,
         }
     }
 }
@@ -124,7 +125,7 @@ pub(crate) fn read_to_end<D: io::Read>(mut d: D) -> Result<Vec<u8>, io::Error> {
         match d.read(&mut buf) {
             Ok(0) => break,
             Ok(n) => result.extend_from_slice(&buf[0..n]),
-            Err(ref e) if e.kind() == io::ErrorKind::Interrupted => {},
+            Err(ref e) if e.kind() == io::ErrorKind::Interrupted => {}
             Err(e) => return Err(e),
         };
     }

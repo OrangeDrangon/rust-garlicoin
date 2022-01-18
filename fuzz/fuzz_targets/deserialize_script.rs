@@ -1,9 +1,9 @@
-extern crate bitcoin;
+extern crate garlicoin;
 
-use bitcoin::util::address::Address;
-use bitcoin::network::constants::Network;
-use bitcoin::blockdata::script;
-use bitcoin::consensus::encode;
+use garlicoin::blockdata::script;
+use garlicoin::consensus::encode;
+use garlicoin::network::constants::Network;
+use garlicoin::util::address::Address;
 
 fn do_test(data: &[u8]) {
     let s: Result<script::Script, _> = encode::deserialize(data);
@@ -16,7 +16,9 @@ fn do_test(data: &[u8]) {
                 return;
             }
             match ins.ok().unwrap() {
-                script::Instruction::Op(op) => { b = b.push_opcode(op); }
+                script::Instruction::Op(op) => {
+                    b = b.push_opcode(op);
+                }
                 script::Instruction::PushBytes(bytes) => {
                     // Any one-byte pushes, except -0, which can be interpreted as numbers, should be
                     // reserialized as numbers. (For -1 through 16, this will use special ops; for
@@ -37,14 +39,15 @@ fn do_test(data: &[u8]) {
         assert_eq!(data, &encode::serialize(&script)[..]);
 
         // Check if valid address and if that address roundtrips.
-        if let Some(addr) = Address::from_script(&script, Network::Bitcoin) {
+        if let Some(addr) = Address::from_script(&script, Network::Garlicoin) {
             assert_eq!(addr.script_pubkey(), script);
         }
     }
 }
 
 #[cfg(feature = "afl")]
-#[macro_use] extern crate afl;
+#[macro_use]
+extern crate afl;
 #[cfg(feature = "afl")]
 fn main() {
     fuzz!(|data| {
@@ -53,7 +56,8 @@ fn main() {
 }
 
 #[cfg(feature = "honggfuzz")]
-#[macro_use] extern crate honggfuzz;
+#[macro_use]
+extern crate honggfuzz;
 #[cfg(feature = "honggfuzz")]
 fn main() {
     loop {

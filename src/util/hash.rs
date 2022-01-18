@@ -1,4 +1,4 @@
-// Rust Bitcoin Library
+// Rust Garlicoin Library
 // Written in 2014 by
 //     Andrew Poelstra <apoelstra@wpsoftware.net>
 // To the extent possible under law, the author(s) have dedicated all
@@ -11,7 +11,7 @@
 // If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 //
 
-//! Bitcoin hash functions.
+//! Garlicoin hash functions.
 //!
 //! This module provides utility functions related to hashing data, including
 //! merkleization.
@@ -21,11 +21,11 @@ use core::iter;
 
 use prelude::*;
 
-use io;
 use core::cmp::min;
+use io;
 
-use hashes::Hash;
 use consensus::encode::Encodable;
+use hashes::Hash;
 
 /// Calculates the merkle root of a list of *hashes*, inline (in place) in `hashes`.
 ///
@@ -36,8 +36,9 @@ use consensus::encode::Encodable;
 /// - `Some(hash)` if `hashes` contains one element. A single hash is by definition the merkle root.
 /// - `Some(merkle_root)` if length of `hashes` is greater than one.
 pub fn bitcoin_merkle_root_inline<T>(hashes: &mut [T]) -> Option<T>
-    where T: Hash + Encodable,
-          <T as Hash>::Engine: io::Write,
+where
+    T: Hash + Encodable,
+    <T as Hash>::Engine: io::Write,
 {
     match hashes.len() {
         0 => None,
@@ -53,9 +54,10 @@ pub fn bitcoin_merkle_root_inline<T>(hashes: &mut [T]) -> Option<T>
 /// - `Some(hash)` if `hashes` contains one element. A single hash is by definition the merkle root.
 /// - `Some(merkle_root)` if length of `hashes` is greater than one.
 pub fn bitcoin_merkle_root<T, I>(mut hashes: I) -> Option<T>
-    where T: Hash + Encodable,
-          <T as Hash>::Engine: io::Write,
-          I: Iterator<Item = T>,
+where
+    T: Hash + Encodable,
+    <T as Hash>::Engine: io::Write,
+    I: Iterator<Item = T>,
 {
     let first = hashes.next()?;
     let second = match hashes.next() {
@@ -74,8 +76,12 @@ pub fn bitcoin_merkle_root<T, I>(mut hashes: I) -> Option<T>
         // If the size is odd, use the last element twice.
         let hash2 = hashes.next().unwrap_or(hash1);
         let mut encoder = T::engine();
-        hash1.consensus_encode(&mut encoder).expect("in-memory writers don't error");
-        hash2.consensus_encode(&mut encoder).expect("in-memory writers don't error");
+        hash1
+            .consensus_encode(&mut encoder)
+            .expect("in-memory writers don't error");
+        hash2
+            .consensus_encode(&mut encoder)
+            .expect("in-memory writers don't error");
         alloc.push(T::from_engine(encoder));
     }
 
@@ -84,19 +90,24 @@ pub fn bitcoin_merkle_root<T, I>(mut hashes: I) -> Option<T>
 
 // `hashes` must contain at least one hash.
 fn merkle_root_r<T>(hashes: &mut [T]) -> T
-    where T: Hash + Encodable,
-          <T as Hash>::Engine: io::Write,
+where
+    T: Hash + Encodable,
+    <T as Hash>::Engine: io::Write,
 {
     if hashes.len() == 1 {
-        return hashes[0]
+        return hashes[0];
     }
 
     for idx in 0..((hashes.len() + 1) / 2) {
         let idx1 = 2 * idx;
         let idx2 = min(idx1 + 1, hashes.len() - 1);
         let mut encoder = T::engine();
-        hashes[idx1].consensus_encode(&mut encoder).expect("in-memory writers don't error");
-        hashes[idx2].consensus_encode(&mut encoder).expect("in-memory writers don't error");
+        hashes[idx1]
+            .consensus_encode(&mut encoder)
+            .expect("in-memory writers don't error");
+        hashes[idx2]
+            .consensus_encode(&mut encoder)
+            .expect("in-memory writers don't error");
         hashes[idx] = T::from_engine(encoder);
     }
     let half_len = hashes.len() / 2 + hashes.len() % 2;
@@ -109,8 +120,8 @@ mod tests {
     use consensus::encode::deserialize;
     use hashes::sha256d;
 
-    use blockdata::block::Block;
     use super::*;
+    use blockdata::block::Block;
 
     #[test]
     fn both_merkle_root_functions_return_the_same_result() {

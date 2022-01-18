@@ -1,4 +1,4 @@
-// Rust Bitcoin Library
+// Rust Garlicoin Library
 // Written in 2014 by
 //     Andrew Poelstra <apoelstra@wpsoftware.net>
 // To the extent possible under law, the author(s) have dedicated all
@@ -11,26 +11,26 @@
 // If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 //
 
-//! Bitcoin keys.
+//! Garlicoin keys.
 //!
-//! This module provides keys used in Bitcoin that can be roundtrip
+//! This module provides keys used in Garlicoin that can be roundtrip
 //! (de)serialized.
 
-pub use secp256k1::{XOnlyPublicKey, KeyPair};
+pub use secp256k1::{KeyPair, XOnlyPublicKey};
 
 use prelude::*;
 
-use core::{ops, str::FromStr};
 use core::fmt::{self, Write as _fmtWrite};
+use core::{ops, str::FromStr};
 use io;
-#[cfg(feature = "std")] use std::error;
+#[cfg(feature = "std")]
+use std::error;
 
-use secp256k1::{self, Secp256k1};
-use network::constants::Network;
-use hashes::{Hash, hash160};
 use hash_types::{PubkeyHash, WPubkeyHash};
+use hashes::{hash160, Hash};
+use network::constants::Network;
+use secp256k1::{self, Secp256k1};
 use util::base58;
-
 
 /// A key-related error.
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
@@ -40,7 +40,6 @@ pub enum Error {
     /// secp256k1-related error
     Secp256k1(secp256k1::Error),
 }
-
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -76,8 +75,7 @@ impl From<secp256k1::Error> for Error {
     }
 }
 
-
-/// A Bitcoin ECDSA public key
+/// A Garlicoin ECDSA public key
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct PublicKey {
     /// Whether this public key should be serialized as compressed
@@ -104,7 +102,7 @@ impl PublicKey {
         }
     }
 
-    /// Returns bitcoin 160-bit hash of the public key
+    /// Returns garlicoin 160-bit hash of the public key
     pub fn pubkey_hash(&self) -> PubkeyHash {
         if self.compressed {
             PubkeyHash::hash(&self.inner.serialize())
@@ -113,11 +111,11 @@ impl PublicKey {
         }
     }
 
-    /// Returns bitcoin 160-bit hash of the public key for witness program
+    /// Returns garlicoin 160-bit hash of the public key for witness program
     pub fn wpubkey_hash(&self) -> Option<WPubkeyHash> {
         if self.compressed {
             Some(WPubkeyHash::from_inner(
-                hash160::Hash::hash(&self.inner.serialize()).into_inner()
+                hash160::Hash::hash(&self.inner.serialize()).into_inner(),
             ))
         } else {
             // We can't create witness pubkey hashes for an uncompressed
@@ -150,7 +148,7 @@ impl PublicKey {
         };
 
         reader.read_exact(&mut bytes[1..])?;
-        Self::from_slice(bytes).map_err(|e|{
+        Self::from_slice(bytes).map_err(|e| {
             // Need a static string for core2
             #[cfg(feature = "std")]
             let reason = e;
@@ -175,7 +173,9 @@ impl PublicKey {
         let compressed: bool = match data.len() {
             33 => true,
             65 => false,
-            len =>  { return Err(base58::Error::InvalidLength(len).into()); },
+            len => {
+                return Err(base58::Error::InvalidLength(len).into());
+            }
         };
 
         Ok(PublicKey {
@@ -185,7 +185,10 @@ impl PublicKey {
     }
 
     /// Computes the public key as supposed to be used with this secret
-    pub fn from_private_key<C: secp256k1::Signing>(secp: &Secp256k1<C>, sk: &PrivateKey) -> PublicKey {
+    pub fn from_private_key<C: secp256k1::Signing>(
+        secp: &Secp256k1<C>,
+        sk: &PrivateKey,
+    ) -> PublicKey {
         sk.public_key(secp)
     }
 }
@@ -211,12 +214,12 @@ impl FromStr for PublicKey {
         let key = secp256k1::PublicKey::from_str(s)?;
         Ok(PublicKey {
             inner: key,
-            compressed: s.len() == 66
+            compressed: s.len() == 66,
         })
     }
 }
 
-/// A Bitcoin ECDSA private key
+/// A Garlicoin ECDSA private key
 #[derive(Copy, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "std", derive(Debug))]
 pub struct PrivateKey {
@@ -253,7 +256,7 @@ impl PrivateKey {
     pub fn public_key<C: secp256k1::Signing>(&self, secp: &Secp256k1<C>) -> PublicKey {
         PublicKey {
             compressed: self.compressed,
-            inner: secp256k1::PublicKey::from_secret_key(secp, &self.inner)
+            inner: secp256k1::PublicKey::from_secret_key(secp, &self.inner),
         }
     }
 
@@ -274,7 +277,7 @@ impl PrivateKey {
     pub fn fmt_wif(&self, fmt: &mut dyn fmt::Write) -> fmt::Result {
         let mut ret = [0; 34];
         ret[0] = match self.network {
-            Network::Bitcoin => 128,
+            Network::Garlicoin => 128,
             Network::Testnet | Network::Signet | Network::Regtest => 239,
         };
         ret[1..33].copy_from_slice(&self.inner[..]);
@@ -302,13 +305,17 @@ impl PrivateKey {
         let compressed = match data.len() {
             33 => false,
             34 => true,
-            _ => { return Err(Error::Base58(base58::Error::InvalidLength(data.len()))); }
+            _ => {
+                return Err(Error::Base58(base58::Error::InvalidLength(data.len())));
+            }
         };
 
         let network = match data[0] {
-            128 => Network::Bitcoin,
+            128 => Network::Garlicoin,
             239 => Network::Testnet,
-            x   => { return Err(Error::Base58(base58::Error::InvalidAddressVersion(x))); }
+            x => {
+                return Err(Error::Base58(base58::Error::InvalidAddressVersion(x)));
+            }
         };
 
         Ok(PrivateKey {
@@ -464,38 +471,49 @@ impl<'de> ::serde::Deserialize<'de> for PublicKey {
 
 #[cfg(test)]
 mod tests {
-    use io;
     use super::{PrivateKey, PublicKey};
+    use hashes::hex::ToHex;
+    use io;
+    use network::constants::Network::Garlicoin;
+    use network::constants::Network::Testnet;
     use secp256k1::Secp256k1;
     use std::str::FromStr;
-    use hashes::hex::ToHex;
-    use network::constants::Network::Testnet;
-    use network::constants::Network::Bitcoin;
     use util::address::Address;
 
     #[test]
     fn test_key_derivation() {
         // testnet compressed
-        let sk = PrivateKey::from_wif("cVt4o7BGAig1UXywgGSmARhxMdzP5qvQsxKkSsc1XEkw3tDTQFpy").unwrap();
+        let sk =
+            PrivateKey::from_wif("cVt4o7BGAig1UXywgGSmARhxMdzP5qvQsxKkSsc1XEkw3tDTQFpy").unwrap();
         assert_eq!(sk.network, Testnet);
         assert_eq!(sk.compressed, true);
-        assert_eq!(&sk.to_wif(), "cVt4o7BGAig1UXywgGSmARhxMdzP5qvQsxKkSsc1XEkw3tDTQFpy");
+        assert_eq!(
+            &sk.to_wif(),
+            "cVt4o7BGAig1UXywgGSmARhxMdzP5qvQsxKkSsc1XEkw3tDTQFpy"
+        );
 
         let secp = Secp256k1::new();
         let pk = Address::p2pkh(&sk.public_key(&secp), sk.network);
         assert_eq!(&pk.to_string(), "mqwpxxvfv3QbM8PU8uBx2jaNt9btQqvQNx");
 
         // test string conversion
-        assert_eq!(&sk.to_string(), "cVt4o7BGAig1UXywgGSmARhxMdzP5qvQsxKkSsc1XEkw3tDTQFpy");
+        assert_eq!(
+            &sk.to_string(),
+            "cVt4o7BGAig1UXywgGSmARhxMdzP5qvQsxKkSsc1XEkw3tDTQFpy"
+        );
         let sk_str =
             PrivateKey::from_str("cVt4o7BGAig1UXywgGSmARhxMdzP5qvQsxKkSsc1XEkw3tDTQFpy").unwrap();
         assert_eq!(&sk.to_wif(), &sk_str.to_wif());
 
         // mainnet uncompressed
-        let sk = PrivateKey::from_wif("5JYkZjmN7PVMjJUfJWfRFwtuXTGB439XV6faajeHPAM9Z2PT2R3").unwrap();
-        assert_eq!(sk.network, Bitcoin);
+        let sk =
+            PrivateKey::from_wif("5JYkZjmN7PVMjJUfJWfRFwtuXTGB439XV6faajeHPAM9Z2PT2R3").unwrap();
+        assert_eq!(sk.network, Garlicoin);
         assert_eq!(sk.compressed, false);
-        assert_eq!(&sk.to_wif(), "5JYkZjmN7PVMjJUfJWfRFwtuXTGB439XV6faajeHPAM9Z2PT2R3");
+        assert_eq!(
+            &sk.to_wif(),
+            "5JYkZjmN7PVMjJUfJWfRFwtuXTGB439XV6faajeHPAM9Z2PT2R3"
+        );
 
         let secp = Secp256k1::new();
         let mut pk = sk.public_key(&secp);
@@ -505,55 +523,74 @@ mod tests {
         let addr = Address::p2pkh(&pk, sk.network);
         assert_eq!(&addr.to_string(), "1GhQvF6dL8xa6wBxLnWmHcQsurx9RxiMc8");
         pk.compressed = true;
-        assert_eq!(&pk.to_string(), "032e58afe51f9ed8ad3cc7897f634d881fdbe49a81564629ded8156bebd2ffd1af");
-        assert_eq!(pk, PublicKey::from_str("032e58afe51f9ed8ad3cc7897f634d881fdbe49a81564629ded8156bebd2ffd1af").unwrap());
+        assert_eq!(
+            &pk.to_string(),
+            "032e58afe51f9ed8ad3cc7897f634d881fdbe49a81564629ded8156bebd2ffd1af"
+        );
+        assert_eq!(
+            pk,
+            PublicKey::from_str(
+                "032e58afe51f9ed8ad3cc7897f634d881fdbe49a81564629ded8156bebd2ffd1af"
+            )
+            .unwrap()
+        );
     }
 
     #[test]
     fn test_pubkey_hash() {
-        let pk = PublicKey::from_str("032e58afe51f9ed8ad3cc7897f634d881fdbe49a81564629ded8156bebd2ffd1af").unwrap();
+        let pk = PublicKey::from_str(
+            "032e58afe51f9ed8ad3cc7897f634d881fdbe49a81564629ded8156bebd2ffd1af",
+        )
+        .unwrap();
         let upk = PublicKey::from_str("042e58afe51f9ed8ad3cc7897f634d881fdbe49a81564629ded8156bebd2ffd1af191923a2964c177f5b5923ae500fca49e99492d534aa3759d6b25a8bc971b133").unwrap();
-        assert_eq!(pk.pubkey_hash().to_hex(), "9511aa27ef39bbfa4e4f3dd15f4d66ea57f475b4");
-        assert_eq!(upk.pubkey_hash().to_hex(), "ac2e7daf42d2c97418fd9f78af2de552bb9c6a7a");
+        assert_eq!(
+            pk.pubkey_hash().to_hex(),
+            "9511aa27ef39bbfa4e4f3dd15f4d66ea57f475b4"
+        );
+        assert_eq!(
+            upk.pubkey_hash().to_hex(),
+            "ac2e7daf42d2c97418fd9f78af2de552bb9c6a7a"
+        );
     }
 
     #[test]
     fn test_wpubkey_hash() {
-        let pk = PublicKey::from_str("032e58afe51f9ed8ad3cc7897f634d881fdbe49a81564629ded8156bebd2ffd1af").unwrap();
+        let pk = PublicKey::from_str(
+            "032e58afe51f9ed8ad3cc7897f634d881fdbe49a81564629ded8156bebd2ffd1af",
+        )
+        .unwrap();
         let upk = PublicKey::from_str("042e58afe51f9ed8ad3cc7897f634d881fdbe49a81564629ded8156bebd2ffd1af191923a2964c177f5b5923ae500fca49e99492d534aa3759d6b25a8bc971b133").unwrap();
-        assert_eq!(pk.wpubkey_hash().unwrap().to_hex(), "9511aa27ef39bbfa4e4f3dd15f4d66ea57f475b4");
+        assert_eq!(
+            pk.wpubkey_hash().unwrap().to_hex(),
+            "9511aa27ef39bbfa4e4f3dd15f4d66ea57f475b4"
+        );
         assert_eq!(upk.wpubkey_hash(), None);
     }
 
     #[cfg(feature = "serde")]
     #[test]
     fn test_key_serde() {
-        use serde_test::{Configure, Token, assert_tokens};
+        use serde_test::{assert_tokens, Configure, Token};
 
         static KEY_WIF: &'static str = "cVt4o7BGAig1UXywgGSmARhxMdzP5qvQsxKkSsc1XEkw3tDTQFpy";
-        static PK_STR: &'static str = "039b6347398505f5ec93826dc61c19f47c66c0283ee9be980e29ce325a0f4679ef";
+        static PK_STR: &'static str =
+            "039b6347398505f5ec93826dc61c19f47c66c0283ee9be980e29ce325a0f4679ef";
         static PK_STR_U: &'static str = "\
             04\
             9b6347398505f5ec93826dc61c19f47c66c0283ee9be980e29ce325a0f4679ef\
             87288ed73ce47fc4f5c79d19ebfa57da7cff3aff6e819e4ee971d86b5e61875d\
         ";
         static PK_BYTES: [u8; 33] = [
-            0x03,
-            0x9b, 0x63, 0x47, 0x39, 0x85, 0x05, 0xf5, 0xec,
-            0x93, 0x82, 0x6d, 0xc6, 0x1c, 0x19, 0xf4, 0x7c,
-            0x66, 0xc0, 0x28, 0x3e, 0xe9, 0xbe, 0x98, 0x0e,
-            0x29, 0xce, 0x32, 0x5a, 0x0f, 0x46, 0x79, 0xef,
+            0x03, 0x9b, 0x63, 0x47, 0x39, 0x85, 0x05, 0xf5, 0xec, 0x93, 0x82, 0x6d, 0xc6, 0x1c,
+            0x19, 0xf4, 0x7c, 0x66, 0xc0, 0x28, 0x3e, 0xe9, 0xbe, 0x98, 0x0e, 0x29, 0xce, 0x32,
+            0x5a, 0x0f, 0x46, 0x79, 0xef,
         ];
         static PK_BYTES_U: [u8; 65] = [
-            0x04,
-            0x9b, 0x63, 0x47, 0x39, 0x85, 0x05, 0xf5, 0xec,
-            0x93, 0x82, 0x6d, 0xc6, 0x1c, 0x19, 0xf4, 0x7c,
-            0x66, 0xc0, 0x28, 0x3e, 0xe9, 0xbe, 0x98, 0x0e,
-            0x29, 0xce, 0x32, 0x5a, 0x0f, 0x46, 0x79, 0xef,
-            0x87, 0x28, 0x8e, 0xd7, 0x3c, 0xe4, 0x7f, 0xc4,
-            0xf5, 0xc7, 0x9d, 0x19, 0xeb, 0xfa, 0x57, 0xda,
-            0x7c, 0xff, 0x3a, 0xff, 0x6e, 0x81, 0x9e, 0x4e,
-            0xe9, 0x71, 0xd8, 0x6b, 0x5e, 0x61, 0x87, 0x5d,
+            0x04, 0x9b, 0x63, 0x47, 0x39, 0x85, 0x05, 0xf5, 0xec, 0x93, 0x82, 0x6d, 0xc6, 0x1c,
+            0x19, 0xf4, 0x7c, 0x66, 0xc0, 0x28, 0x3e, 0xe9, 0xbe, 0x98, 0x0e, 0x29, 0xce, 0x32,
+            0x5a, 0x0f, 0x46, 0x79, 0xef, 0x87, 0x28, 0x8e, 0xd7, 0x3c, 0xe4, 0x7f, 0xc4, 0xf5,
+            0xc7, 0x9d, 0x19, 0xeb, 0xfa, 0x57, 0xda, 0x7c, 0xff, 0x3a, 0xff, 0x6e, 0x81, 0x9e,
+            0x4e, 0xe9, 0x71, 0xd8, 0x6b, 0x5e, 0x61, 0x87, 0x5d,
         ];
 
         let s = Secp256k1::new();

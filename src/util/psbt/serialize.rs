@@ -1,6 +1,6 @@
-// Rust Bitcoin Library
+// Rust Garlicoin Library
 // Written by
-//   The Rust Bitcoin developers
+//   The Rust Garlicoin developers
 //
 // To the extent possible under law, the author(s) have dedicated all
 // copyright and related and neighboring rights to this software to
@@ -23,18 +23,18 @@ use prelude::*;
 use io;
 
 use blockdata::script::Script;
-use blockdata::witness::Witness;
 use blockdata::transaction::{Transaction, TxOut};
-use consensus::encode::{self, serialize, Decodable, Encodable, deserialize_partial};
+use blockdata::witness::Witness;
+use consensus::encode::{self, deserialize_partial, serialize, Decodable, Encodable};
+use hashes::{hash160, ripemd160, sha256, sha256d, Hash};
+use schnorr;
 use secp256k1::{self, XOnlyPublicKey};
 use util::bip32::{ChildNumber, Fingerprint, KeySource};
-use hashes::{hash160, ripemd160, sha256, sha256d, Hash};
 use util::ecdsa::{EcdsaSig, EcdsaSigError};
 use util::psbt;
-use util::taproot::{TapBranchHash, TapLeafHash, ControlBlock, LeafVersion};
-use schnorr;
+use util::taproot::{ControlBlock, LeafVersion, TapBranchHash, TapLeafHash};
 
-use super::map::{TapTree, PsbtSigHashType};
+use super::map::{PsbtSigHashType, TapTree};
 
 use util::taproot::TaprootBuilder;
 /// A trait for serializing a value as raw data for insertion into PSBT
@@ -111,13 +111,16 @@ impl Deserialize for EcdsaSig {
         // would use check the signature assuming sighash_u32 as `0x01`.
         match EcdsaSig::from_slice(&bytes) {
             Ok(sig) => Ok(sig),
-            Err(EcdsaSigError::EmptySignature) =>
-                Err(encode::Error::ParseFailed("Empty partial signature data")),
-            Err(EcdsaSigError::NonStandardSigHashType(flag)) =>
-                Err(encode::Error::from(psbt::Error::NonStandardSigHashType(flag))),
-            Err(EcdsaSigError::Secp256k1(..)) =>
-                Err(encode::Error::ParseFailed("Invalid Ecdsa signature")),
-            Err(EcdsaSigError::HexEncoding(..)) => unreachable!("Decoding from slice, not hex")
+            Err(EcdsaSigError::EmptySignature) => {
+                Err(encode::Error::ParseFailed("Empty partial signature data"))
+            }
+            Err(EcdsaSigError::NonStandardSigHashType(flag)) => Err(encode::Error::from(
+                psbt::Error::NonStandardSigHashType(flag),
+            )),
+            Err(EcdsaSigError::Secp256k1(..)) => {
+                Err(encode::Error::ParseFailed("Invalid Ecdsa signature"))
+            }
+            Err(EcdsaSigError::HexEncoding(..)) => unreachable!("Decoding from slice, not hex"),
         }
     }
 }
@@ -139,7 +142,7 @@ impl Serialize for KeySource {
 impl Deserialize for KeySource {
     fn deserialize(bytes: &[u8]) -> Result<Self, encode::Error> {
         if bytes.len() < 4 {
-            return Err(io::Error::from(io::ErrorKind::UnexpectedEof).into())
+            return Err(io::Error::from(io::ErrorKind::UnexpectedEof).into());
         }
 
         let fprint: Fingerprint = Fingerprint::from(&bytes[0..4]);
@@ -197,7 +200,7 @@ impl Deserialize for XOnlyPublicKey {
     }
 }
 
-impl Serialize for schnorr::SchnorrSig  {
+impl Serialize for schnorr::SchnorrSig {
     fn serialize(&self) -> Vec<u8> {
         self.to_vec()
     }
@@ -207,13 +210,15 @@ impl Deserialize for schnorr::SchnorrSig {
     fn deserialize(bytes: &[u8]) -> Result<Self, encode::Error> {
         match schnorr::SchnorrSig::from_slice(&bytes) {
             Ok(sig) => Ok(sig),
-            Err(schnorr::SchnorrSigError::InvalidSighashType(flag)) => {
-                Err(encode::Error::from(psbt::Error::NonStandardSigHashType(flag as u32)))
+            Err(schnorr::SchnorrSigError::InvalidSighashType(flag)) => Err(encode::Error::from(
+                psbt::Error::NonStandardSigHashType(flag as u32),
+            )),
+            Err(schnorr::SchnorrSigError::InvalidSchnorrSigSize(_)) => Err(
+                encode::Error::ParseFailed("Invalid Schnorr signature length"),
+            ),
+            Err(schnorr::SchnorrSigError::Secp256k1(..)) => {
+                Err(encode::Error::ParseFailed("Invalid Schnorr signature"))
             }
-            Err(schnorr::SchnorrSigError::InvalidSchnorrSigSize(_)) =>
-                Err(encode::Error::ParseFailed("Invalid Schnorr signature length")),
-            Err(schnorr::SchnorrSigError::Secp256k1(..)) =>
-                Err(encode::Error::ParseFailed("Invalid Schnorr signature")),
         }
     }
 }
@@ -231,7 +236,7 @@ impl Serialize for (XOnlyPublicKey, TapLeafHash) {
 impl Deserialize for (XOnlyPublicKey, TapLeafHash) {
     fn deserialize(bytes: &[u8]) -> Result<Self, encode::Error> {
         if bytes.len() < 32 {
-            return Err(io::Error::from(io::ErrorKind::UnexpectedEof).into())
+            return Err(io::Error::from(io::ErrorKind::UnexpectedEof).into());
         }
         let a: XOnlyPublicKey = Deserialize::deserialize(&bytes[..32])?;
         let b: TapLeafHash = Deserialize::deserialize(&bytes[32..])?;
@@ -247,8 +252,7 @@ impl Serialize for ControlBlock {
 
 impl Deserialize for ControlBlock {
     fn deserialize(bytes: &[u8]) -> Result<Self, encode::Error> {
-        Self::from_slice(bytes)
-            .map_err(|_| encode::Error::ParseFailed("Invalid control block"))
+        Self::from_slice(bytes).map_err(|_| encode::Error::ParseFailed("Invalid control block"))
     }
 }
 
@@ -265,7 +269,7 @@ impl Serialize for (Script, LeafVersion) {
 impl Deserialize for (Script, LeafVersion) {
     fn deserialize(bytes: &[u8]) -> Result<Self, encode::Error> {
         if bytes.is_empty() {
-            return Err(io::Error::from(io::ErrorKind::UnexpectedEof).into())
+            return Err(io::Error::from(io::ErrorKind::UnexpectedEof).into());
         }
         // The last byte is LeafVersion.
         let script = Script::deserialize(&bytes[..bytes.len() - 1])?;
@@ -275,11 +279,12 @@ impl Deserialize for (Script, LeafVersion) {
     }
 }
 
-
 impl Serialize for (Vec<TapLeafHash>, KeySource) {
     fn serialize(&self) -> Vec<u8> {
-        let mut buf = Vec::with_capacity( 32 * self.0.len() + key_source_len(&self.1));
-        self.0.consensus_encode(&mut buf).expect("Vecs don't error allocation");
+        let mut buf = Vec::with_capacity(32 * self.0.len() + key_source_len(&self.1));
+        self.0
+            .consensus_encode(&mut buf)
+            .expect("Vecs don't error allocation");
         // TODO: Add support for writing into a writer for key-source
         buf.extend(self.1.serialize());
         buf
@@ -306,11 +311,14 @@ impl Serialize for TapTree {
                     // safe to cast from usize to u8
                     buf.push(leaf_info.merkle_branch.as_inner().len() as u8);
                     buf.push(leaf_info.ver.into_consensus());
-                    leaf_info.script.consensus_encode(&mut buf).expect("Vecs dont err");
+                    leaf_info
+                        .script
+                        .consensus_encode(&mut buf)
+                        .expect("Vecs dont err");
                 }
                 buf
             }
-        // This should be unreachable as we Taptree is already finalized
+            // This should be unreachable as we Taptree is already finalized
             _ => unreachable!(),
         }
     }
@@ -321,7 +329,9 @@ impl Deserialize for TapTree {
         let mut builder = TaprootBuilder::new();
         let mut bytes_iter = bytes.iter();
         while let Some(depth) = bytes_iter.next() {
-            let version = bytes_iter.next().ok_or(encode::Error::ParseFailed("Invalid Taproot Builder"))?;
+            let version = bytes_iter
+                .next()
+                .ok_or(encode::Error::ParseFailed("Invalid Taproot Builder"))?;
             let (script, consumed) = deserialize_partial::<Script>(bytes_iter.as_slice())?;
             if consumed > 0 {
                 bytes_iter.nth(consumed - 1);
@@ -329,7 +339,8 @@ impl Deserialize for TapTree {
 
             let leaf_version = LeafVersion::from_consensus(*version)
                 .map_err(|_| encode::Error::ParseFailed("Leaf Version Error"))?;
-            builder = builder.add_leaf_with_ver(usize::from(*depth), script, leaf_version)
+            builder = builder
+                .add_leaf_with_ver(usize::from(*depth), script, leaf_version)
                 .map_err(|_| encode::Error::ParseFailed("Tree not in DFS order"))?;
         }
         if builder.is_complete() {

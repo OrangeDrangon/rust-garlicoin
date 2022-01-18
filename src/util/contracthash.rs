@@ -1,4 +1,4 @@
-// Rust Bitcoin Library
+// Rust Garlicoin Library
 // Written in 2015 by
 //   Andrew Poelstra <apoelstra@wpsoftware.net>
 //
@@ -36,7 +36,7 @@ use hash_types::ScriptHash;
 use network::constants::Network;
 use util::address;
 
-/// Encoding of "pubkey here" in script; from Bitcoin Core `src/script/script.h`
+/// Encoding of "pubkey here" in script; from Garlicoin Core `src/script/script.h`
 static PUBKEY: u8 = 0xFE;
 
 /// A contract-hash error
@@ -335,9 +335,9 @@ mod tests {
         let (sk2, pk2) = secp.generate_keypair(&mut thread_rng());
         let (sk3, pk3) = secp.generate_keypair(&mut thread_rng());
 
-        let sk1 = PrivateKey::new(sk1, Network::Bitcoin);
-        let sk2 = PrivateKey::new_uncompressed(sk2, Network::Bitcoin);
-        let sk3 = PrivateKey::new(sk3, Network::Bitcoin);
+        let sk1 = PrivateKey::new(sk1, Network::Garlicoin);
+        let sk2 = PrivateKey::new_uncompressed(sk2, Network::Garlicoin);
+        let sk3 = PrivateKey::new(sk3, Network::Garlicoin);
         let pks = [
             PublicKey::new(pk1),
             PublicKey::new_uncompressed(pk2),

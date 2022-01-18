@@ -1,8 +1,8 @@
-extern crate bitcoin;
+extern crate garlicoin;
 use std::str::FromStr;
 fn do_test(data: &[u8]) {
     let data_str = String::from_utf8_lossy(data);
-    let addr = match bitcoin::util::address::Address::from_str(&data_str) {
+    let addr = match garlicoin::util::address::Address::from_str(&data_str) {
         Ok(addr) => addr,
         Err(_) => return,
     };
@@ -10,7 +10,8 @@ fn do_test(data: &[u8]) {
 }
 
 #[cfg(feature = "afl")]
-#[macro_use] extern crate afl;
+#[macro_use]
+extern crate afl;
 #[cfg(feature = "afl")]
 fn main() {
     fuzz!(|data| {
@@ -19,7 +20,8 @@ fn main() {
 }
 
 #[cfg(feature = "honggfuzz")]
-#[macro_use] extern crate honggfuzz;
+#[macro_use]
+extern crate honggfuzz;
 #[cfg(feature = "honggfuzz")]
 fn main() {
     loop {

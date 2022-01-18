@@ -1,17 +1,17 @@
-extern crate bitcoin;
+extern crate garlicoin;
 
-use std::{env, process};
 use std::str::FromStr;
+use std::{env, process};
 
-use bitcoin::secp256k1::Secp256k1;
-use bitcoin::PublicKey;
-use bitcoin::util::bip32::ExtendedPrivKey;
-use bitcoin::util::bip32::ExtendedPubKey;
-use bitcoin::util::bip32::DerivationPath;
-use bitcoin::util::bip32::ChildNumber;
-use bitcoin::util::address::Address;
-use bitcoin::secp256k1::ffi::types::AlignedType;
-use bitcoin::hashes::hex::FromHex;
+use garlicoin::hashes::hex::FromHex;
+use garlicoin::secp256k1::ffi::types::AlignedType;
+use garlicoin::secp256k1::Secp256k1;
+use garlicoin::util::address::Address;
+use garlicoin::util::bip32::ChildNumber;
+use garlicoin::util::bip32::DerivationPath;
+use garlicoin::util::bip32::ExtendedPrivKey;
+use garlicoin::util::bip32::ExtendedPubKey;
+use garlicoin::PublicKey;
 
 fn main() {
     // This example derives root xprv from a 32-byte seed,
@@ -23,7 +23,10 @@ fn main() {
 
     let args: Vec<String> = env::args().collect();
     if args.len() < 2 {
-        eprintln!("not enough arguments. usage: {} <hex-encoded 32-byte seed>", &args[0]);
+        eprintln!(
+            "not enough arguments. usage: {} <hex-encoded 32-byte seed>",
+            &args[0]
+        );
         process::exit(1);
     }
 
@@ -31,7 +34,7 @@ fn main() {
     println!("Seed: {}", seed_hex);
 
     // default network as mainnet
-    let network = bitcoin::Network::Bitcoin;
+    let network = garlicoin::Network::Garlicoin;
     println!("Network: {:?}", network);
 
     let seed = Vec::from_hex(seed_hex).unwrap();
@@ -55,10 +58,10 @@ fn main() {
     // generate first receiving address at m/0/0
     // manually creating indexes this time
     let zero = ChildNumber::from_normal_idx(0).unwrap();
-    let public_key = xpub.derive_pub(&secp, &vec![zero, zero])
-                         .unwrap()
-                         .public_key;
+    let public_key = xpub
+        .derive_pub(&secp, &vec![zero, zero])
+        .unwrap()
+        .public_key;
     let address = Address::p2wpkh(&PublicKey::new(public_key), network).unwrap();
     println!("First receiving address: {}", address);
-
 }

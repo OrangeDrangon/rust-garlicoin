@@ -1,4 +1,4 @@
-// Rust Bitcoin Library
+// Rust Garlicoin Library
 // Written by
 //   John L. Jegutanis
 //
@@ -14,7 +14,7 @@
 //
 // This code was translated from merkleblock.h, merkleblock.cpp and pmt_tests.cpp
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2018 The Bitcoin Core developers
+// Copyright (c) 2009-2018 The Garlicoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -25,18 +25,18 @@
 //! # Examples
 //!
 //! ```rust
-//! use bitcoin::hash_types::Txid;
-//! use bitcoin::hashes::hex::FromHex;
-//! use bitcoin::{Block, MerkleBlock};
+//! use garlicoin::hash_types::Txid;
+//! use garlicoin::hashes::hex::FromHex;
+//! use garlicoin::{Block, MerkleBlock};
 //!
 //! // Get the proof from a bitcoind by running in the terminal:
 //! // $ TXID="5a4ebf66822b0b2d56bd9dc64ece0bc38ee7844a23ff1d7320a88c5fdb2ad3e2"
-//! // $ bitcoin-cli gettxoutproof [\"$TXID\"]
+//! // $ garlicoin-cli gettxoutproof [\"$TXID\"]
 //! let mb_bytes = Vec::from_hex("01000000ba8b9cda965dd8e536670f9ddec10e53aab14b20bacad27b913719\
 //!     0000000000190760b278fe7b8565fda3b968b918d5fd997f993b23674c0af3b6fde300b38f33a5914ce6ed5b\
 //!     1b01e32f570200000002252bf9d75c4f481ebb6278d708257d1f12beb6dd30301d26c623f789b2ba6fc0e2d3\
 //!     2adb5f8ca820731dff234a84e78ec30bce4ec69dbd562d0b2b8266bf4e5a0105").unwrap();
-//! let mb: MerkleBlock = bitcoin::consensus::deserialize(&mb_bytes).unwrap();
+//! let mb: MerkleBlock = garlicoin::consensus::deserialize(&mb_bytes).unwrap();
 //!
 //! // Authenticate and extract matched transaction ids
 //! let mut matches: Vec<Txid> = vec![];
@@ -56,11 +56,11 @@ use prelude::*;
 
 use io;
 
+use hash_types::{TxMerkleNode, Txid};
 use hashes::Hash;
-use hash_types::{Txid, TxMerkleNode};
 
-use blockdata::transaction::Transaction;
 use blockdata::constants::{MAX_BLOCK_WEIGHT, MIN_TRANSACTION_WEIGHT};
+use blockdata::transaction::Transaction;
 use consensus::encode::{self, Decodable, Encodable};
 use util::merkleblock::MerkleBlockError::*;
 use {Block, BlockHeader};
@@ -131,9 +131,9 @@ impl PartialMerkleTree {
     /// # Examples
     ///
     /// ```rust
-    /// use bitcoin::hash_types::Txid;
-    /// use bitcoin::hashes::hex::FromHex;
-    /// use bitcoin::util::merkleblock::PartialMerkleTree;
+    /// use garlicoin::hash_types::Txid;
+    /// use garlicoin::hashes::hex::FromHex;
+    /// use garlicoin::util::merkleblock::PartialMerkleTree;
     ///
     /// // Block 80000
     /// let txids: Vec<Txid> = [
@@ -246,13 +246,7 @@ impl PartialMerkleTree {
     }
 
     /// Recursive function that traverses tree nodes, storing the data as bits and hashes
-    fn traverse_and_build(
-        &mut self,
-        height: u32,
-        pos: u32,
-        txids: &[Txid],
-        matches: &[bool],
-    ) {
+    fn traverse_and_build(&mut self, height: u32, pos: u32, txids: &[Txid], matches: &[bool]) {
         // Determine whether this node is the parent of at least one matched txid
         let mut parent_of_match = false;
         let mut p = pos << height;
@@ -341,17 +335,17 @@ impl PartialMerkleTree {
     /// Helper method to produce SHA256D(left + right)
     fn parent_hash(left: TxMerkleNode, right: TxMerkleNode) -> TxMerkleNode {
         let mut encoder = TxMerkleNode::engine();
-        left.consensus_encode(&mut encoder).expect("engines don't error");
-        right.consensus_encode(&mut encoder).expect("engines don't error");
+        left.consensus_encode(&mut encoder)
+            .expect("engines don't error");
+        right
+            .consensus_encode(&mut encoder)
+            .expect("engines don't error");
         TxMerkleNode::from_engine(encoder)
     }
 }
 
 impl Encodable for PartialMerkleTree {
-    fn consensus_encode<S: io::Write>(
-        &self,
-        mut s: S,
-    ) -> Result<usize, io::Error> {
+    fn consensus_encode<S: io::Write>(&self, mut s: S) -> Result<usize, io::Error> {
         let ret = self.num_transactions.consensus_encode(&mut s)?
             + self.hashes.consensus_encode(&mut s)?;
         let mut bytes: Vec<u8> = vec![0; (self.bits.len() + 7) / 8];
@@ -402,9 +396,9 @@ impl MerkleBlock {
     /// # Examples
     ///
     /// ```rust
-    /// use bitcoin::hash_types::Txid;
-    /// use bitcoin::hashes::hex::FromHex;
-    /// use bitcoin::{Block, MerkleBlock};
+    /// use garlicoin::hash_types::Txid;
+    /// use garlicoin::hashes::hex::FromHex;
+    /// use garlicoin::{Block, MerkleBlock};
     ///
     /// // Block 80000
     /// let block_bytes = Vec::from_hex("01000000ba8b9cda965dd8e536670f9ddec10e53aab14b20bacad2\
@@ -417,7 +411,7 @@ impl MerkleBlock {
     ///     d3ee3738d9e1446618c4571d1090db022100e2ac980643b0b82c0e88ffdfec6b64e3e6ba35e7ba5fdd7d\
     ///     5d6cc8d25c6b241501ffffffff0100f2052a010000001976a914404371705fa9bd789a2fcd52d2c580b6\
     ///     5d35549d88ac00000000").unwrap();
-    /// let block: Block = bitcoin::consensus::deserialize(&block_bytes).unwrap();
+    /// let block: Block = garlicoin::consensus::deserialize(&block_bytes).unwrap();
     ///
     /// // Create a merkle block containing a single transaction
     /// let txid = Txid::from_hex(
@@ -432,7 +426,9 @@ impl MerkleBlock {
     /// assert_eq!(txid, matches[0]);
     /// ```
     pub fn from_block_with_predicate<F>(block: &Block, match_txids: F) -> Self
-        where F: Fn(&Txid) -> bool {
+    where
+        F: Fn(&Txid) -> bool,
+    {
         let block_txids: Vec<_> = block.txdata.iter().map(Transaction::txid).collect();
         Self::from_header_txids_with_predicate(&block.header, &block_txids, match_txids)
     }
@@ -440,7 +436,7 @@ impl MerkleBlock {
     /// Create a MerkleBlock from a block, that contains proofs for specific txids.
     #[cfg(feature = "std")]
     #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
-    #[deprecated(since="0.26.2", note="use from_block_with_predicate")]
+    #[deprecated(since = "0.26.2", note = "use from_block_with_predicate")]
     pub fn from_block(block: &Block, match_txids: &::std::collections::HashSet<Txid>) -> Self {
         Self::from_block_with_predicate(block, |t| match_txids.contains(t))
     }
@@ -453,11 +449,11 @@ impl MerkleBlock {
         header: &BlockHeader,
         block_txids: &[Txid],
         match_txids: F,
-    ) -> Self where F: Fn(&Txid) -> bool {
-        let matches: Vec<bool> = block_txids
-            .iter()
-            .map(match_txids)
-            .collect();
+    ) -> Self
+    where
+        F: Fn(&Txid) -> bool,
+    {
+        let matches: Vec<bool> = block_txids.iter().map(match_txids).collect();
 
         let pmt = PartialMerkleTree::from_txids(block_txids, &matches);
         MerkleBlock {
@@ -469,7 +465,7 @@ impl MerkleBlock {
     /// Create a MerkleBlock from the block's header and txids, that should contain proofs for match_txids.
     #[cfg(feature = "std")]
     #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
-    #[deprecated(since="0.26.2", note="use from_header_txids_with_predicate")]
+    #[deprecated(since = "0.26.2", note = "use from_header_txids_with_predicate")]
     pub fn from_header_txids(
         header: &BlockHeader,
         block_txids: &[Txid],
@@ -497,12 +493,8 @@ impl MerkleBlock {
 }
 
 impl Encodable for MerkleBlock {
-    fn consensus_encode<S: io::Write>(
-        &self,
-        mut s: S,
-    ) -> Result<usize, io::Error> {
-        let len = self.header.consensus_encode(&mut s)?
-            + self.txn.consensus_encode(s)?;
+    fn consensus_encode<S: io::Write>(&self, mut s: S) -> Result<usize, io::Error> {
+        let len = self.header.consensus_encode(&mut s)? + self.txn.consensus_encode(s)?;
         Ok(len)
     }
 }
@@ -520,9 +512,9 @@ impl Decodable for MerkleBlock {
 mod tests {
     use core::cmp::min;
 
-    use hashes::Hash;
+    use hash_types::{TxMerkleNode, Txid};
     use hashes::hex::{FromHex, ToHex};
-    use hash_types::{Txid, TxMerkleNode};
+    use hashes::Hash;
     use secp256k1::rand::prelude::*;
 
     use consensus::encode::{deserialize, serialize};
@@ -543,7 +535,9 @@ mod tests {
 
             // Calculate the merkle root and height
             let hashes = txids.iter().map(|t| t.as_hash());
-            let merkle_root_1: TxMerkleNode = bitcoin_merkle_root(hashes).expect("hashes is not empty").into();
+            let merkle_root_1: TxMerkleNode = bitcoin_merkle_root(hashes)
+                .expect("hashes is not empty")
+                .into();
             let mut height = 1;
             let mut ntx = num_tx;
             while ntx > 1 {

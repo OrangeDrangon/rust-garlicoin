@@ -1,6 +1,6 @@
-// Rust Bitcoin Library
+// Rust Garlicoin Library
 // Written in 2021 by
-//   The rust-bitcoin developers
+//   The rust-garlicoin developers
 //
 // To the extent possible under law, the author(s) have dedicated all
 // copyright and related and neighboring rights to this software to
@@ -15,8 +15,8 @@
 //! Generalized, efficient, signature hash implementation.
 //!
 //! Implementation of the algorithm to compute the message to be signed according to
-//! [Bip341](https://github.com/bitcoin/bips/blob/150ab6f5c3aca9da05fccc5b435e9667853407f4/bip-0341.mediawiki),
-//! [Bip143](https://github.com/bitcoin/bips/blob/99701f68a88ce33b2d0838eb84e115cef505b4c2/bip-0143.mediawiki)
+//! [Bip341](https://github.com/garlicoin/bips/blob/150ab6f5c3aca9da05fccc5b435e9667853407f4/bip-0341.mediawiki),
+//! [Bip143](https://github.com/garlicoin/bips/blob/99701f68a88ce33b2d0838eb84e115cef505b4c2/bip-0143.mediawiki)
 //! and legacy (before Bip143).
 //!
 
@@ -27,7 +27,7 @@ use core::fmt;
 use core::ops::{Deref, DerefMut};
 use hashes::{sha256, sha256d, Hash};
 use io;
-use util::taproot::{TapLeafHash, TAPROOT_ANNEX_PREFIX, TapSighashHash};
+use util::taproot::{TapLeafHash, TapSighashHash, TAPROOT_ANNEX_PREFIX};
 use SigHash;
 use {Script, Transaction, TxOut};
 
@@ -235,8 +235,13 @@ impl<'s> ScriptPath<'s> {
     pub fn leaf_hash(&self) -> TapLeafHash {
         let mut enc = TapLeafHash::engine();
 
-        self.leaf_version.into_consensus().consensus_encode(&mut enc).expect("Writing to hash enging should never fail");
-        self.script.consensus_encode(&mut enc).expect("Writing to hash enging should never fail");
+        self.leaf_version
+            .into_consensus()
+            .consensus_encode(&mut enc)
+            .expect("Writing to hash enging should never fail");
+        self.script
+            .consensus_encode(&mut enc)
+            .expect("Writing to hash enging should never fail");
 
         TapLeafHash::from_engine(enc)
     }
@@ -692,9 +697,9 @@ impl<R: DerefMut<Target = Transaction>> SigHashCache<R> {
     ///
     /// This allows in-line signing such as
     /// ```
-    /// use bitcoin::blockdata::transaction::{Transaction, EcdsaSigHashType};
-    /// use bitcoin::util::sighash::SigHashCache;
-    /// use bitcoin::Script;
+    /// use garlicoin::blockdata::transaction::{Transaction, EcdsaSigHashType};
+    /// use garlicoin::util::sighash::SigHashCache;
+    /// use garlicoin::Script;
     ///
     /// let mut tx_to_sign = Transaction { version: 2, lock_time: 0, input: Vec::new(), output: Vec::new() };
     /// let input_count = tx_to_sign.input.len();
@@ -749,12 +754,12 @@ mod tests {
     use super::*;
     use consensus::deserialize;
     use hashes::hex::FromHex;
-    use hashes::{Hash, HashEngine};
-    use util::sighash::{Annex, Error, Prevouts, ScriptPath, SigHashCache};
-    use std::str::FromStr;
     use hashes::hex::ToHex;
-    use util::taproot::{TapTweakHash, TapSighashHash, TapBranchHash, TapLeafHash};
+    use hashes::{Hash, HashEngine};
     use secp256k1::{self, SecretKey, XOnlyPublicKey};
+    use std::str::FromStr;
+    use util::sighash::{Annex, Error, Prevouts, ScriptPath, SigHashCache};
+    use util::taproot::{TapBranchHash, TapLeafHash, TapSighashHash, TapTweakHash};
     extern crate serde_json;
 
     use {Script, Transaction, TxIn, TxOut};
@@ -773,7 +778,7 @@ mod tests {
 
     #[test]
     fn test_sighashes_keyspending() {
-        // following test case has been taken from bitcoin core test framework
+        // following test case has been taken from garlicoin core test framework
 
         test_taproot_sighash(
             "020000000164eb050a5e3da0c2a65e4786f26d753b7bc69691fabccafb11f7acef36641f1846010000003101b2b404392a22000000000017a9147f2bde86fe78bf68a0544a4f290e12f0b7e0a08c87580200000000000017a91425d11723074ecfb96a0a83c3956bfaf362ae0c908758020000000000001600147e20f938993641de67bb0cdd71682aa34c4d29ad5802000000000000160014c64984dc8761acfa99418bd6bedc79b9287d652d72000000",
@@ -899,7 +904,13 @@ mod tests {
         let mut c = SigHashCache::new(&dumb_tx);
 
         assert_eq!(
-            c.taproot_signature_hash(0, &Prevouts::All(&vec![]), None, None, SchnorrSigHashType::All),
+            c.taproot_signature_hash(
+                0,
+                &Prevouts::All(&vec![]),
+                None,
+                None,
+                SchnorrSigHashType::All
+            ),
             Err(Error::PrevoutsSize)
         );
         let two = vec![TxOut::default(), TxOut::default()];
@@ -915,11 +926,23 @@ mod tests {
             Err(Error::PrevoutKind)
         );
         assert_eq!(
-            c.taproot_signature_hash(0, &prevout, None, None, SchnorrSigHashType::AllPlusAnyoneCanPay),
+            c.taproot_signature_hash(
+                0,
+                &prevout,
+                None,
+                None,
+                SchnorrSigHashType::AllPlusAnyoneCanPay
+            ),
             Err(Error::PrevoutIndex)
         );
         assert_eq!(
-            c.taproot_signature_hash(10, &prevout, None, None, SchnorrSigHashType::AllPlusAnyoneCanPay),
+            c.taproot_signature_hash(
+                10,
+                &prevout,
+                None,
+                None,
+                SchnorrSigHashType::AllPlusAnyoneCanPay
+            ),
             Err(Error::IndexOutOfInputsBounds {
                 index: 10,
                 inputs_size: 1
@@ -927,7 +950,13 @@ mod tests {
         );
         let prevout = Prevouts::One(0, &tx_out);
         assert_eq!(
-            c.taproot_signature_hash(0, &prevout, None, None, SchnorrSigHashType::SinglePlusAnyoneCanPay),
+            c.taproot_signature_hash(
+                0,
+                &prevout,
+                None,
+                None,
+                SchnorrSigHashType::SinglePlusAnyoneCanPay
+            ),
             Err(Error::SingleWithoutCorrespondingOutput {
                 index: 0,
                 outputs_size: 0
@@ -972,14 +1001,12 @@ mod tests {
             None => None,
         };
 
-        let leaf_hash =  match (script_hex, script_leaf_hash) {
+        let leaf_hash = match (script_hex, script_leaf_hash) {
             (Some(script_hex), _) => {
                 let script_inner = Script::from_hex(script_hex).unwrap();
                 Some(ScriptPath::with_defaults(&script_inner).leaf_hash())
             }
-            (_, Some(script_leaf_hash)) => {
-                Some(TapLeafHash::from_hex(script_leaf_hash).unwrap())
-            }
+            (_, Some(script_leaf_hash)) => Some(TapLeafHash::from_hex(script_leaf_hash).unwrap()),
             _ => None,
         };
         // All our tests use the default `0xFFFFFFFF` codeseparator value
@@ -1004,18 +1031,23 @@ mod tests {
 
     #[test]
     fn bip_341_sighash_tests() {
-
         let data = bip_341_read_json();
         assert!(data["version"].as_u64().unwrap() == 1u64);
         let secp = &secp256k1::Secp256k1::new();
         let key_path = &data["keyPathSpending"].as_array().unwrap()[0];
 
-        let raw_unsigned_tx = hex_decode!(Transaction, key_path["given"]["rawUnsignedTx"].as_str().unwrap());
+        let raw_unsigned_tx = hex_decode!(
+            Transaction,
+            key_path["given"]["rawUnsignedTx"].as_str().unwrap()
+        );
         let mut utxos = vec![];
         for utxo in key_path["given"]["utxosSpent"].as_array().unwrap() {
             let spk = hex_script!(utxo["scriptPubKey"].as_str().unwrap());
             let amt = utxo["amountSats"].as_u64().unwrap();
-            utxos.push(TxOut {value: amt, script_pubkey: spk });
+            utxos.push(TxOut {
+                value: amt,
+                script_pubkey: spk,
+            });
         }
 
         // Test intermediary
@@ -1023,37 +1055,76 @@ mod tests {
         let expected_amt_hash = key_path["intermediary"]["hashAmounts"].as_str().unwrap();
         let expected_outputs_hash = key_path["intermediary"]["hashOutputs"].as_str().unwrap();
         let expected_prevouts_hash = key_path["intermediary"]["hashPrevouts"].as_str().unwrap();
-        let expected_spks_hash = key_path["intermediary"]["hashScriptPubkeys"].as_str().unwrap();
+        let expected_spks_hash = key_path["intermediary"]["hashScriptPubkeys"]
+            .as_str()
+            .unwrap();
         let expected_sequences_hash = key_path["intermediary"]["hashSequences"].as_str().unwrap();
 
         // Compute all caches
-        assert_eq!(expected_amt_hash, cache.taproot_cache(&utxos).amounts.to_hex());
+        assert_eq!(
+            expected_amt_hash,
+            cache.taproot_cache(&utxos).amounts.to_hex()
+        );
         assert_eq!(expected_outputs_hash, cache.common_cache().outputs.to_hex());
-        assert_eq!(expected_prevouts_hash, cache.common_cache().prevouts.to_hex());
-        assert_eq!(expected_spks_hash, cache.taproot_cache(&utxos).script_pubkeys.to_hex());
-        assert_eq!(expected_sequences_hash, cache.common_cache().sequences.to_hex());
+        assert_eq!(
+            expected_prevouts_hash,
+            cache.common_cache().prevouts.to_hex()
+        );
+        assert_eq!(
+            expected_spks_hash,
+            cache.taproot_cache(&utxos).script_pubkeys.to_hex()
+        );
+        assert_eq!(
+            expected_sequences_hash,
+            cache.common_cache().sequences.to_hex()
+        );
 
         for inp in key_path["inputSpending"].as_array().unwrap() {
             let tx_ind = inp["given"]["txinIndex"].as_u64().unwrap() as usize;
-            let internal_priv_key = hex_hash!(SecretKey, inp["given"]["internalPrivkey"].as_str().unwrap());
+            let internal_priv_key =
+                hex_hash!(SecretKey, inp["given"]["internalPrivkey"].as_str().unwrap());
             let merkle_root = if inp["given"]["merkleRoot"].is_null() {
                 None
             } else {
-                Some(hex_hash!(TapBranchHash, inp["given"]["merkleRoot"].as_str().unwrap()))
+                Some(hex_hash!(
+                    TapBranchHash,
+                    inp["given"]["merkleRoot"].as_str().unwrap()
+                ))
             };
-            let hash_ty = SchnorrSigHashType::from_u8(inp["given"]["hashType"].as_u64().unwrap() as u8).unwrap();
+            let hash_ty =
+                SchnorrSigHashType::from_u8(inp["given"]["hashType"].as_u64().unwrap() as u8)
+                    .unwrap();
 
-            let expected_internal_pk = hex_hash!(XOnlyPublicKey, inp["intermediary"]["internalPubkey"].as_str().unwrap());
-            let expected_tweak = hex_hash!(TapTweakHash, inp["intermediary"]["tweak"].as_str().unwrap());
-            let expected_tweaked_priv_key = hex_hash!(SecretKey, inp["intermediary"]["tweakedPrivkey"].as_str().unwrap());
-            let expected_sig_msg = Vec::<u8>::from_hex(inp["intermediary"]["sigMsg"].as_str().unwrap()).unwrap();
-            let expected_sig_hash = hex_hash!(TapSighashHash, inp["intermediary"]["sigHash"].as_str().unwrap());
+            let expected_internal_pk = hex_hash!(
+                XOnlyPublicKey,
+                inp["intermediary"]["internalPubkey"].as_str().unwrap()
+            );
+            let expected_tweak =
+                hex_hash!(TapTweakHash, inp["intermediary"]["tweak"].as_str().unwrap());
+            let expected_tweaked_priv_key = hex_hash!(
+                SecretKey,
+                inp["intermediary"]["tweakedPrivkey"].as_str().unwrap()
+            );
+            let expected_sig_msg =
+                Vec::<u8>::from_hex(inp["intermediary"]["sigMsg"].as_str().unwrap()).unwrap();
+            let expected_sig_hash = hex_hash!(
+                TapSighashHash,
+                inp["intermediary"]["sigHash"].as_str().unwrap()
+            );
             let sig_str = inp["expected"]["witness"][0].as_str().unwrap();
             let (expected_key_spend_sig, expected_hash_ty) = if sig_str.len() == 128 {
-                (secp256k1::schnorr::Signature::from_str(sig_str).unwrap(), SchnorrSigHashType::Default)
+                (
+                    secp256k1::schnorr::Signature::from_str(sig_str).unwrap(),
+                    SchnorrSigHashType::Default,
+                )
             } else {
-                let hash_ty = SchnorrSigHashType::from_u8(Vec::<u8>::from_hex(&sig_str[128..]).unwrap()[0]).unwrap();
-                (secp256k1::schnorr::Signature::from_str(&sig_str[..128]).unwrap(), hash_ty)
+                let hash_ty =
+                    SchnorrSigHashType::from_u8(Vec::<u8>::from_hex(&sig_str[128..]).unwrap()[0])
+                        .unwrap();
+                (
+                    secp256k1::schnorr::Signature::from_str(&sig_str[..128]).unwrap(),
+                    hash_ty,
+                )
             };
 
             // tests
@@ -1063,21 +1134,19 @@ mod tests {
             let mut tweaked_keypair = keypair;
             tweaked_keypair.tweak_add_assign(&secp, &tweak).unwrap();
             let mut sig_msg = Vec::new();
-            cache.taproot_encode_signing_data_to(
-                &mut sig_msg,
-                tx_ind,
-                &Prevouts::All(&utxos),
-                None,
-                None,
-                hash_ty
-            ).unwrap();
-            let sig_hash = cache.taproot_signature_hash(
-                tx_ind,
-                &Prevouts::All(&utxos),
-                None,
-                None,
-                hash_ty
-            ).unwrap();
+            cache
+                .taproot_encode_signing_data_to(
+                    &mut sig_msg,
+                    tx_ind,
+                    &Prevouts::All(&utxos),
+                    None,
+                    None,
+                    hash_ty,
+                )
+                .unwrap();
+            let sig_hash = cache
+                .taproot_signature_hash(tx_ind, &Prevouts::All(&utxos), None, None, hash_ty)
+                .unwrap();
 
             let msg = secp256k1::Message::from_slice(&sig_hash).unwrap();
             let key_spend_sig = secp.sign_schnorr_with_aux_rand(&msg, &tweaked_keypair, &[0u8; 32]);

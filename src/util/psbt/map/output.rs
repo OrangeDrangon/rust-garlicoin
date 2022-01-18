@@ -1,6 +1,6 @@
-// Rust Bitcoin Library
+// Rust Garlicoin Library
 // Written by
-//   The Rust Bitcoin developers
+//   The Rust Garlicoin developers
 //
 // To the extent possible under law, the author(s) have dedicated all
 // copyright and related and neighboring rights to this software to
@@ -18,9 +18,9 @@ use io;
 
 use blockdata::script::Script;
 use consensus::encode;
+use secp256k1;
 use secp256k1::XOnlyPublicKey;
 use util::bip32::KeySource;
-use secp256k1;
 use util::psbt;
 use util::psbt::map::Map;
 use util::psbt::raw;
@@ -99,7 +99,9 @@ impl TapTree {
         // have only 1 element in branch and that is not None.
         // We make sure that we only allow is_complete builders via the from_inner
         // constructor
-        self.0.branch()[0].as_ref().expect("from_inner only parses is_complete builders")
+        self.0.branch()[0]
+            .as_ref()
+            .expect("from_inner only parses is_complete builders")
     }
 
     /// Converts a [`TaprootBuilder`] into a tree if it is complete binary tree.
@@ -148,8 +150,10 @@ impl Output {
                 match self.proprietary.entry(key) {
                     btree_map::Entry::Vacant(empty_key) => {
                         empty_key.insert(raw_value);
-                    },
-                    btree_map::Entry::Occupied(_) => return Err(Error::DuplicateKey(raw_key).into()),
+                    }
+                    btree_map::Entry::Occupied(_) => {
+                        return Err(Error::DuplicateKey(raw_key).into())
+                    }
                 }
             }
             PSBT_OUT_TAP_INTERNAL_KEY => {
@@ -171,8 +175,10 @@ impl Output {
                 btree_map::Entry::Vacant(empty_key) => {
                     empty_key.insert(raw_value);
                 }
-                btree_map::Entry::Occupied(k) => return Err(Error::DuplicateKey(k.key().clone()).into()),
-            }
+                btree_map::Entry::Occupied(k) => {
+                    return Err(Error::DuplicateKey(k.key().clone()).into())
+                }
+            },
         }
 
         Ok(())

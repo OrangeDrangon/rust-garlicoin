@@ -1,7 +1,7 @@
-extern crate bitcoin;
+extern crate garlicoin;
 
 fn do_test(data: &[u8]) {
-    let _: Result<bitcoin::network::message::RawNetworkMessage, _> = bitcoin::consensus::encode::deserialize(data);
+    let _: Result<garlicoin::network::message::RawNetworkMessage, _> = garlicoin::consensus::encode::deserialize(data);
 }
 
 #[cfg(feature = "afl")]

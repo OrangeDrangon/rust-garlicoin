@@ -1,4 +1,4 @@
-// Rust Bitcoin Library
+// Rust Garlicoin Library
 // Written in 2014 by
 //   Andrew Poelstra <apoelstra@wpsoftware.net>
 //
@@ -12,10 +12,10 @@
 // If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 //
 
-//! # Rust Bitcoin Library
+//! # Rust Garlicoin Library
 //!
-//! This is a library that supports the Bitcoin network protocol and associated
-//! primitives. It is designed for Rust programs built to work with the Bitcoin
+//! This is a library that supports the Garlicoin network protocol and associated
+//! primitives. It is designed for Rust programs built to work with the Garlicoin
 //! network.
 //!
 //! It is also written entirely in Rust to illustrate the benefits of strong type
@@ -41,12 +41,9 @@
 //!
 
 #![cfg_attr(all(not(feature = "std"), not(test)), no_std)]
-
 // Experimental features we need
 #![cfg_attr(all(test, feature = "unstable"), feature(test))]
-
 #![cfg_attr(docsrs, feature(doc_cfg))]
-
 // Coding conventions
 #![forbid(unsafe_code)]
 #![deny(non_upper_case_globals)]
@@ -64,9 +61,11 @@ compile_error!("at least one of the `std` or `no-std` features must be enabled")
 
 // Disable 16-bit support at least for now as we can't guarantee it yet.
 #[cfg(target_pointer_width = "16")]
-compile_error!("rust-bitcoin currently only supports architectures with pointers wider
+compile_error!(
+    "rust-garlicoin currently only supports architectures with pointers wider
                 than 16 bits, let us know if you want 16-bit support. Note that we do
-                NOT guarantee that we will implement it!");
+                NOT guarantee that we will implement it!"
+);
 
 #[cfg(feature = "no-std")]
 #[macro_use]
@@ -78,9 +77,10 @@ extern crate core2;
 extern crate core; // for Rust 1.29 and no-std tests
 
 // Re-exported dependencies.
-#[macro_use] pub extern crate bitcoin_hashes as hashes;
-pub extern crate secp256k1;
+#[macro_use]
+pub extern crate bitcoin_hashes as hashes;
 pub extern crate bech32;
+pub extern crate secp256k1;
 
 #[cfg(feature = "no-std")]
 extern crate hashbrown;
@@ -89,15 +89,22 @@ extern crate hashbrown;
 #[cfg_attr(docsrs, doc(cfg(feature = "base64")))]
 pub extern crate base64;
 
-#[cfg(feature="bitcoinconsensus")] extern crate bitcoinconsensus;
-#[cfg(feature = "serde")] #[macro_use] extern crate serde;
-#[cfg(all(test, feature = "serde"))] extern crate serde_json;
-#[cfg(all(test, feature = "serde"))] extern crate serde_test;
-#[cfg(all(test, feature = "serde"))] extern crate bincode;
-#[cfg(all(test, feature = "unstable"))] extern crate test;
+#[cfg(feature = "bitcoinconsensus")]
+extern crate bitcoinconsensus;
+#[cfg(feature = "serde")]
+#[macro_use]
+extern crate serde;
+#[cfg(all(test, feature = "serde"))]
+extern crate bincode;
+#[cfg(all(test, feature = "serde"))]
+extern crate serde_json;
+#[cfg(all(test, feature = "serde"))]
+extern crate serde_test;
+#[cfg(all(test, feature = "unstable"))]
+extern crate test;
 
 #[cfg(target_pointer_width = "16")]
-compile_error!("rust-bitcoin cannot be used on 16-bit architectures");
+compile_error!("rust-garlicoin cannot be used on 16-bit architectures");
 
 #[cfg(test)]
 #[macro_use]
@@ -110,24 +117,23 @@ mod serde_utils;
 #[macro_use]
 pub mod network;
 pub mod blockdata;
-pub mod util;
 pub mod consensus;
 pub mod hash_types;
 pub mod policy;
+pub mod util;
 
-pub use hash_types::*;
 pub use blockdata::block::Block;
 pub use blockdata::block::BlockHeader;
 pub use blockdata::script::Script;
+pub use blockdata::transaction::EcdsaSigHashType;
+pub use blockdata::transaction::OutPoint;
 pub use blockdata::transaction::Transaction;
 pub use blockdata::transaction::TxIn;
 pub use blockdata::transaction::TxOut;
-pub use blockdata::transaction::OutPoint;
-pub use blockdata::transaction::EcdsaSigHashType;
 pub use blockdata::witness::Witness;
 pub use consensus::encode::VarInt;
+pub use hash_types::*;
 pub use network::constants::Network;
-pub use util::Error;
 pub use util::address::Address;
 pub use util::address::AddressType;
 pub use util::amount::Amount;
@@ -135,17 +141,18 @@ pub use util::amount::Denomination;
 pub use util::amount::SignedAmount;
 pub use util::merkleblock::MerkleBlock;
 pub use util::sighash::SchnorrSigHashType;
+pub use util::Error;
 
-pub use util::ecdsa::{self, EcdsaSig, EcdsaSigError};
-pub use util::schnorr::{self, SchnorrSig, SchnorrSigError};
-pub use util::key::{PrivateKey, PublicKey, XOnlyPublicKey, KeyPair};
 #[allow(deprecated)]
 pub use blockdata::transaction::SigHashType;
+pub use util::ecdsa::{self, EcdsaSig, EcdsaSigError};
+pub use util::key::{KeyPair, PrivateKey, PublicKey, XOnlyPublicKey};
+pub use util::schnorr::{self, SchnorrSig, SchnorrSigError};
 
-#[cfg(feature = "std")]
-use std::io;
 #[cfg(not(feature = "std"))]
 use core2::io;
+#[cfg(feature = "std")]
+use std::io;
 
 #[cfg(not(feature = "std"))]
 mod io_extras {
@@ -174,16 +181,30 @@ mod io_extras {
 
 mod prelude {
     #[cfg(all(not(feature = "std"), not(test)))]
-    pub use alloc::{string::{String, ToString}, vec::Vec, boxed::Box, borrow::{Cow, ToOwned}, slice, rc, sync};
+    pub use alloc::{
+        borrow::{Cow, ToOwned},
+        boxed::Box,
+        rc, slice,
+        string::{String, ToString},
+        sync,
+        vec::Vec,
+    };
 
     #[cfg(any(feature = "std", test))]
-    pub use std::{string::{String, ToString}, vec::Vec, boxed::Box, borrow::{Cow, ToOwned}, slice, rc, sync};
+    pub use std::{
+        borrow::{Cow, ToOwned},
+        boxed::Box,
+        rc, slice,
+        string::{String, ToString},
+        sync,
+        vec::Vec,
+    };
 
     #[cfg(all(not(feature = "std"), not(test)))]
-    pub use alloc::collections::{BTreeMap, BTreeSet, btree_map, BinaryHeap};
+    pub use alloc::collections::{btree_map, BTreeMap, BTreeSet, BinaryHeap};
 
     #[cfg(any(feature = "std", test))]
-    pub use std::collections::{BTreeMap, BTreeSet, btree_map, BinaryHeap};
+    pub use std::collections::{btree_map, BTreeMap, BTreeSet, BinaryHeap};
 
     #[cfg(feature = "std")]
     pub use std::io::sink;
@@ -198,7 +219,8 @@ mod prelude {
     pub use std::collections::HashSet;
 }
 
-#[cfg(all(test, feature = "unstable"))] use tests::EmptyWrite;
+#[cfg(all(test, feature = "unstable"))]
+use tests::EmptyWrite;
 
 #[cfg(all(test, feature = "unstable"))]
 mod tests {

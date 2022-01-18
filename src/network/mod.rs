@@ -1,4 +1,4 @@
-// Rust Bitcoin Library
+// Rust Garlicoin Library
 // Written in 2014 by
 //   Andrew Poelstra <apoelstra@wpsoftware.net>
 //
@@ -12,15 +12,16 @@
 // If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 //
 
-//! Bitcoin network support.
+//! Garlicoin network support.
 //!
 //! This module defines support for (de)serialization and network transport
-//! of Bitcoin data and network messages.
+//! of Garlicoin data and network messages.
 //!
 
-use io;
 use core::fmt;
-#[cfg(feature = "std")] use std::error;
+use io;
+#[cfg(feature = "std")]
+use std::error;
 
 pub mod constants;
 
@@ -41,10 +42,10 @@ pub mod message_blockdata;
 pub mod message_bloom;
 #[cfg(feature = "std")]
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
-pub mod message_network;
+pub mod message_filter;
 #[cfg(feature = "std")]
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
-pub mod message_filter;
+pub mod message_network;
 #[cfg(feature = "std")]
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 pub mod stream_reader;

@@ -1,20 +1,23 @@
-extern crate bitcoin;
+extern crate garlicoin;
 
 fn do_test(data: &[u8]) {
-    let psbt: Result<bitcoin::util::psbt::PartiallySignedTransaction, _> = bitcoin::consensus::encode::deserialize(data);
+    let psbt: Result<garlicoin::util::psbt::PartiallySignedTransaction, _> =
+        garlicoin::consensus::encode::deserialize(data);
     match psbt {
-        Err(_) => {},
+        Err(_) => {}
         Ok(psbt) => {
-            let ser = bitcoin::consensus::encode::serialize(&psbt);
-            let deser: bitcoin::util::psbt::PartiallySignedTransaction  = bitcoin::consensus::encode::deserialize(&ser).unwrap();
+            let ser = garlicoin::consensus::encode::serialize(&psbt);
+            let deser: garlicoin::util::psbt::PartiallySignedTransaction =
+                garlicoin::consensus::encode::deserialize(&ser).unwrap();
             // Since the fuzz data could order psbt fields differently, we compare to our deser/ser instead of data
-            assert_eq!(ser, bitcoin::consensus::encode::serialize(&deser));
+            assert_eq!(ser, garlicoin::consensus::encode::serialize(&deser));
         }
     }
 }
 
 #[cfg(feature = "afl")]
-#[macro_use] extern crate afl;
+#[macro_use]
+extern crate afl;
 #[cfg(feature = "afl")]
 fn main() {
     fuzz!(|data| {
@@ -23,7 +26,8 @@ fn main() {
 }
 
 #[cfg(feature = "honggfuzz")]
-#[macro_use] extern crate honggfuzz;
+#[macro_use]
+extern crate honggfuzz;
 #[cfg(feature = "honggfuzz")]
 fn main() {
     loop {

@@ -1,17 +1,17 @@
-extern crate bitcoin;
+extern crate garlicoin;
 
+use std::io::{BufReader, Write};
 use std::net::{IpAddr, Ipv4Addr, Shutdown, SocketAddr, TcpStream};
 use std::time::{SystemTime, UNIX_EPOCH};
 use std::{env, process};
-use std::io::{Write, BufReader};
 
-use bitcoin::consensus::{encode, Decodable};
-use bitcoin::network::{address, constants, message, message_network};
-use bitcoin::secp256k1;
-use bitcoin::secp256k1::rand::Rng;
+use garlicoin::consensus::{encode, Decodable};
+use garlicoin::network::{address, constants, message, message_network};
+use garlicoin::secp256k1;
+use garlicoin::secp256k1::rand::Rng;
 
 fn main() {
-    // This example establishes a connection to a Bitcoin node, sends the intial
+    // This example establishes a connection to a Garlicoin node, sends the intial
     // "version" message, waits for the reply, and finally closes the connection.
     let args: Vec<String> = env::args().collect();
     if args.len() < 2 {
@@ -29,7 +29,7 @@ fn main() {
     let version_message = build_version_message(address);
 
     let first_message = message::RawNetworkMessage {
-        magic: constants::Network::Bitcoin.magic(),
+        magic: constants::Network::Garlicoin.magic(),
         payload: version_message,
     };
 
@@ -49,7 +49,7 @@ fn main() {
                     println!("Received version message: {:?}", reply.payload);
 
                     let second_message = message::RawNetworkMessage {
-                        magic: constants::Network::Bitcoin.magic(),
+                        magic: constants::Network::Garlicoin.magic(),
                         payload: message::NetworkMessage::Verack,
                     };
 
@@ -73,7 +73,7 @@ fn main() {
 }
 
 fn build_version_message(address: SocketAddr) -> message::NetworkMessage {
-    // Building version message, see https://en.bitcoin.it/wiki/Protocol_documentation#version
+    // Building version message, see https://en.garlicoin.it/wiki/Protocol_documentation#version
     let my_address = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), 0);
 
     // "bitfield of features to be enabled for this connection"

@@ -8,7 +8,7 @@
 // If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 //
 
-//! Bitcoin amounts.
+//! Garlicoin amounts.
 //!
 //! This module mainly introduces the [Amount] and [SignedAmount] types.
 //! We refer to the documentation on the types for more information.
@@ -16,14 +16,14 @@
 
 use prelude::*;
 
-use core::{ops, default, str::FromStr, cmp::Ordering};
 use core::fmt::{self, Write};
+use core::{cmp::Ordering, default, ops, str::FromStr};
 
 /// A set of denominations in which amounts can be expressed.
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
 pub enum Denomination {
     /// BTC
-    Bitcoin,
+    Garlicoin,
     /// mBTC
     MilliBitcoin,
     /// uBTC
@@ -44,7 +44,7 @@ impl Denomination {
     /// The number of decimal places more than a satoshi.
     fn precision(self) -> i32 {
         match self {
-            Denomination::Bitcoin => -8,
+            Denomination::Garlicoin => -8,
             Denomination::MilliBitcoin => -5,
             Denomination::MicroBitcoin => -2,
             Denomination::NanoBitcoin => 1,
@@ -59,7 +59,7 @@ impl Denomination {
 impl fmt::Display for Denomination {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.write_str(match *self {
-            Denomination::Bitcoin => "BTC",
+            Denomination::Garlicoin => "BTC",
             Denomination::MilliBitcoin => "mBTC",
             Denomination::MicroBitcoin => "uBTC",
             Denomination::NanoBitcoin => "nBTC",
@@ -82,13 +82,15 @@ impl FromStr for Denomination {
     ///
     /// Due to ambiguity between mega and milli, pico and peta we prohibit usage of leading capital 'M', 'P'.
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        use self::ParseAmountError::*;
         use self::Denomination as D;
+        use self::ParseAmountError::*;
 
         let starts_with_uppercase = || s.starts_with(char::is_uppercase);
         match denomination_from_str(s) {
             None => Err(UnknownDenomination(s.to_owned())),
-            Some(D::MilliBitcoin) | Some(D::PicoBitcoin) | Some(D::MilliSatoshi) if starts_with_uppercase() => {
+            Some(D::MilliBitcoin) | Some(D::PicoBitcoin) | Some(D::MilliSatoshi)
+                if starts_with_uppercase() =>
+            {
                 Err(PossiblyConfusingDenomination(s.to_owned()))
             }
             Some(D::NanoBitcoin) | Some(D::MicroBitcoin) if starts_with_uppercase() => {
@@ -101,7 +103,7 @@ impl FromStr for Denomination {
 
 fn denomination_from_str(mut s: &str) -> Option<Denomination> {
     if s.eq_ignore_ascii_case("BTC") {
-        return Some(Denomination::Bitcoin);
+        return Some(Denomination::Garlicoin);
     }
 
     if s.eq_ignore_ascii_case("mBTC") {
@@ -159,7 +161,7 @@ pub enum ParseAmountError {
     /// The denomination was unknown.
     UnknownDenomination(String),
     /// The denomination has multiple possible interpretations.
-    PossiblyConfusingDenomination(String)
+    PossiblyConfusingDenomination(String),
 }
 
 impl fmt::Display for ParseAmountError {
@@ -171,11 +173,13 @@ impl fmt::Display for ParseAmountError {
             ParseAmountError::InvalidFormat => f.write_str("invalid number format"),
             ParseAmountError::InputTooLarge => f.write_str("input string was too large"),
             ParseAmountError::InvalidCharacter(c) => write!(f, "invalid character in input: {}", c),
-            ParseAmountError::UnknownDenomination(ref d) => write!(f, "unknown denomination: {}", d),
+            ParseAmountError::UnknownDenomination(ref d) => {
+                write!(f, "unknown denomination: {}", d)
+            }
             ParseAmountError::PossiblyConfusingDenomination(ref d) => {
                 let (letter, upper, lower) = match d.chars().next() {
                     Some('M') => ('M', "Mega", "milli"),
-                    Some('P') => ('P',"Peta", "pico"),
+                    Some('P') => ('P', "Peta", "pico"),
                     // This panic could be avoided by adding enum ConfusingDenomination { Mega, Peta } but is it worth it?
                     _ => panic!("invalid error information"),
                 };
@@ -317,7 +321,7 @@ fn fmt_satoshi_in(
 
 /// Amount
 ///
-/// The [Amount] type can be used to express Bitcoin amounts that supports
+/// The [Amount] type can be used to express Garlicoin amounts that supports
 /// arithmetic and conversion to various denominations.
 ///
 ///
@@ -340,7 +344,7 @@ impl Amount {
     pub const ZERO: Amount = Amount(0);
     /// Exactly one satoshi.
     pub const ONE_SAT: Amount = Amount(1);
-    /// Exactly one bitcoin.
+    /// Exactly one garlicoin.
     pub const ONE_BTC: Amount = Amount(100_000_000);
     /// The maximum value allowed as an amount. Useful for sanity checking.
     pub const MAX_MONEY: Amount = Amount(21_000_000 * 100_000_000);
@@ -367,7 +371,7 @@ impl Amount {
 
     /// Convert from a value expressing bitcoins to an [Amount].
     pub fn from_btc(btc: f64) -> Result<Amount, ParseAmountError> {
-        Amount::from_float_in(btc, Denomination::Bitcoin)
+        Amount::from_float_in(btc, Denomination::Garlicoin)
     }
 
     /// Parse a decimal string as a value in the given denomination.
@@ -407,13 +411,13 @@ impl Amount {
         f64::from_str(&self.to_string_in(denom)).unwrap()
     }
 
-    /// Express this [Amount] as a floating-point value in Bitcoin.
+    /// Express this [Amount] as a floating-point value in Garlicoin.
     ///
-    /// Equivalent to `to_float_in(Denomination::Bitcoin)`.
+    /// Equivalent to `to_float_in(Denomination::Garlicoin)`.
     ///
     /// Please be aware of the risk of using floating-point numbers.
     pub fn as_btc(self) -> f64 {
-        self.to_float_in(Denomination::Bitcoin)
+        self.to_float_in(Denomination::Garlicoin)
     }
 
     /// Convert this [Amount] in floating-point notation with a given
@@ -512,11 +516,11 @@ impl fmt::Debug for Amount {
 }
 
 // No one should depend on a binding contract for Display for this type.
-// Just using Bitcoin denominated string.
+// Just using Garlicoin denominated string.
 impl fmt::Display for Amount {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        self.fmt_value_in(f, Denomination::Bitcoin)?;
-        write!(f, " {}", Denomination::Bitcoin)
+        self.fmt_value_in(f, Denomination::Garlicoin)?;
+        write!(f, " {}", Denomination::Garlicoin)
     }
 }
 
@@ -599,7 +603,7 @@ impl FromStr for Amount {
 }
 
 impl ::core::iter::Sum for Amount {
-    fn sum<I: Iterator<Item=Self>>(iter: I) -> Self {
+    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
         let sats: u64 = iter.map(|amt| amt.0).sum();
         Amount::from_sat(sats)
     }
@@ -607,7 +611,7 @@ impl ::core::iter::Sum for Amount {
 
 /// SignedAmount
 ///
-/// The [SignedAmount] type can be used to express Bitcoin amounts that supports
+/// The [SignedAmount] type can be used to express Garlicoin amounts that supports
 /// arithmetic and conversion to various denominations.
 ///
 ///
@@ -627,7 +631,7 @@ impl SignedAmount {
     pub const ZERO: SignedAmount = SignedAmount(0);
     /// Exactly one satoshi.
     pub const ONE_SAT: SignedAmount = SignedAmount(1);
-    /// Exactly one bitcoin.
+    /// Exactly one garlicoin.
     pub const ONE_BTC: SignedAmount = SignedAmount(100_000_000);
     /// The maximum value allowed as an amount. Useful for sanity checking.
     pub const MAX_MONEY: SignedAmount = SignedAmount(21_000_000 * 100_000_000);
@@ -654,7 +658,7 @@ impl SignedAmount {
 
     /// Convert from a value expressing bitcoins to an [SignedAmount].
     pub fn from_btc(btc: f64) -> Result<SignedAmount, ParseAmountError> {
-        SignedAmount::from_float_in(btc, Denomination::Bitcoin)
+        SignedAmount::from_float_in(btc, Denomination::Garlicoin)
     }
 
     /// Parse a decimal string as a value in the given denomination.
@@ -694,13 +698,13 @@ impl SignedAmount {
         f64::from_str(&self.to_string_in(denom)).unwrap()
     }
 
-    /// Express this [SignedAmount] as a floating-point value in Bitcoin.
+    /// Express this [SignedAmount] as a floating-point value in Garlicoin.
     ///
-    /// Equivalent to `to_float_in(Denomination::Bitcoin)`.
+    /// Equivalent to `to_float_in(Denomination::Garlicoin)`.
     ///
     /// Please be aware of the risk of using floating-point numbers.
     pub fn as_btc(self) -> f64 {
-        self.to_float_in(Denomination::Bitcoin)
+        self.to_float_in(Denomination::Garlicoin)
     }
 
     /// Convert this [SignedAmount] in floating-point notation with a given
@@ -721,10 +725,14 @@ impl SignedAmount {
     ///
     /// Does not include the denomination.
     pub fn fmt_value_in(self, f: &mut dyn fmt::Write, denom: Denomination) -> fmt::Result {
-        let sats = self.as_sat().checked_abs().map(|a: i64| a as u64).unwrap_or_else(|| {
-            // We could also hard code this into `9223372036854775808`
-            u64::max_value() - self.as_sat() as u64 +1
-        });
+        let sats = self
+            .as_sat()
+            .checked_abs()
+            .map(|a: i64| a as u64)
+            .unwrap_or_else(|| {
+                // We could also hard code this into `9223372036854775808`
+                u64::max_value() - self.as_sat() as u64 + 1
+            });
         fmt_satoshi_in(sats, self.is_negative(), f, denom)
     }
 
@@ -773,7 +781,6 @@ impl SignedAmount {
     pub fn is_negative(self) -> bool {
         self.0.is_negative()
     }
-
 
     /// Get the absolute value of this [SignedAmount].
     /// Returns [None] if overflow occurred. (`self == min_value()`)
@@ -846,11 +853,11 @@ impl fmt::Debug for SignedAmount {
 }
 
 // No one should depend on a binding contract for Display for this type.
-// Just using Bitcoin denominated string.
+// Just using Garlicoin denominated string.
 impl fmt::Display for SignedAmount {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        self.fmt_value_in(f, Denomination::Bitcoin)?;
-        write!(f, " {}", Denomination::Bitcoin)
+        self.fmt_value_in(f, Denomination::Garlicoin)?;
+        write!(f, " {}", Denomination::Garlicoin)
     }
 }
 
@@ -872,7 +879,8 @@ impl ops::Sub for SignedAmount {
     type Output = SignedAmount;
 
     fn sub(self, rhs: SignedAmount) -> Self::Output {
-        self.checked_sub(rhs).expect("SignedAmount subtraction error")
+        self.checked_sub(rhs)
+            .expect("SignedAmount subtraction error")
     }
 }
 
@@ -886,7 +894,8 @@ impl ops::Rem<i64> for SignedAmount {
     type Output = SignedAmount;
 
     fn rem(self, modulus: i64) -> Self {
-        self.checked_rem(modulus).expect("SignedAmount remainder error")
+        self.checked_rem(modulus)
+            .expect("SignedAmount remainder error")
     }
 }
 
@@ -900,7 +909,8 @@ impl ops::Mul<i64> for SignedAmount {
     type Output = SignedAmount;
 
     fn mul(self, rhs: i64) -> Self::Output {
-        self.checked_mul(rhs).expect("SignedAmount multiplication error")
+        self.checked_mul(rhs)
+            .expect("SignedAmount multiplication error")
     }
 }
 
@@ -933,7 +943,7 @@ impl FromStr for SignedAmount {
 }
 
 impl ::core::iter::Sum for SignedAmount {
-    fn sum<I: Iterator<Item=Self>>(iter: I) -> Self {
+    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
         let sats: i64 = iter.map(|amt| amt.0).sum();
         SignedAmount::from_sat(sats)
     }
@@ -946,30 +956,30 @@ pub trait CheckedSum<R>: private::SumSeal<R> {
     fn checked_sum(self) -> Option<R>;
 }
 
-impl<T> CheckedSum<Amount> for T where T: Iterator<Item = Amount> {
+impl<T> CheckedSum<Amount> for T
+where
+    T: Iterator<Item = Amount>,
+{
     fn checked_sum(mut self) -> Option<Amount> {
         let first = Some(self.next().unwrap_or_default());
 
-        self.fold(
-            first,
-            |acc, item| acc.and_then(|acc| acc.checked_add(item))
-        )
+        self.fold(first, |acc, item| acc.and_then(|acc| acc.checked_add(item)))
     }
 }
 
-impl<T> CheckedSum<SignedAmount> for T where T: Iterator<Item = SignedAmount> {
+impl<T> CheckedSum<SignedAmount> for T
+where
+    T: Iterator<Item = SignedAmount>,
+{
     fn checked_sum(mut self) -> Option<SignedAmount> {
         let first = Some(self.next().unwrap_or_default());
 
-        self.fold(
-            first,
-            |acc, item| acc.and_then(|acc| acc.checked_add(item))
-        )
+        self.fold(first, |acc, item| acc.and_then(|acc| acc.checked_add(item)))
     }
 }
 
 mod private {
-    use ::{Amount, SignedAmount};
+    use {Amount, SignedAmount};
 
     /// Used to seal the `CheckedSum` trait
     pub trait SumSeal<A> {}
@@ -991,11 +1001,11 @@ pub mod serde {
     //!
     //! ```rust,ignore
     //! use serde::{Serialize, Deserialize};
-    //! use bitcoin::Amount;
+    //! use garlicoin::Amount;
     //!
     //! #[derive(Serialize, Deserialize)]
     //! pub struct HasAmount {
-    //!     #[serde(with = "bitcoin::util::amount::serde::as_btc")]
+    //!     #[serde(with = "garlicoin::util::amount::serde::as_btc")]
     //!     pub amount: Amount,
     //! }
     //! ```
@@ -1037,7 +1047,7 @@ pub mod serde {
             Ok(Amount::from_sat(u64::deserialize(d)?))
         }
         fn ser_btc<S: Serializer>(self, s: S) -> Result<S::Ok, S::Error> {
-            f64::serialize(&self.to_float_in(Denomination::Bitcoin), s)
+            f64::serialize(&self.to_float_in(Denomination::Garlicoin), s)
         }
         fn des_btc<'d, D: Deserializer<'d>>(d: D) -> Result<Self, D::Error> {
             use serde::de::Error;
@@ -1065,7 +1075,7 @@ pub mod serde {
             Ok(SignedAmount::from_sat(i64::deserialize(d)?))
         }
         fn ser_btc<S: Serializer>(self, s: S) -> Result<S::Ok, S::Error> {
-            f64::serialize(&self.to_float_in(Denomination::Bitcoin), s)
+            f64::serialize(&self.to_float_in(Denomination::Garlicoin), s)
         }
         fn des_btc<'d, D: Deserializer<'d>>(d: D) -> Result<Self, D::Error> {
             use serde::de::Error;
@@ -1104,10 +1114,10 @@ pub mod serde {
             //! Serialize and deserialize [`Option<Amount>`](crate::Amount) as real numbers denominated in satoshi.
             //! Use with `#[serde(default, with = "amount::serde::as_sat::opt")]`.
 
-            use serde::{Deserializer, Serializer, de};
-            use util::amount::serde::SerdeAmountForOpt;
             use core::fmt;
             use core::marker::PhantomData;
+            use serde::{de, Deserializer, Serializer};
+            use util::amount::serde::SerdeAmountForOpt;
 
             pub fn serialize<A: SerdeAmountForOpt, S: Serializer>(
                 a: &Option<A>,
@@ -1133,12 +1143,13 @@ pub mod serde {
 
                     fn visit_none<E>(self) -> Result<Self::Value, E>
                     where
-                        E: de::Error {
+                        E: de::Error,
+                    {
                         Ok(None)
                     }
                     fn visit_some<D>(self, d: D) -> Result<Self::Value, D::Error>
                     where
-                        D: Deserializer<'de>
+                        D: Deserializer<'de>,
                     {
                         Ok(Some(X::des_sat(d)?))
                     }
@@ -1167,10 +1178,10 @@ pub mod serde {
             //! Serialize and deserialize [Option<Amount>] as JSON numbers denominated in BTC.
             //! Use with `#[serde(default, with = "amount::serde::as_btc::opt")]`.
 
-            use serde::{Deserializer, Serializer, de};
-            use util::amount::serde::SerdeAmountForOpt;
             use core::fmt;
             use core::marker::PhantomData;
+            use serde::{de, Deserializer, Serializer};
+            use util::amount::serde::SerdeAmountForOpt;
 
             pub fn serialize<A: SerdeAmountForOpt, S: Serializer>(
                 a: &Option<A>,
@@ -1187,7 +1198,7 @@ pub mod serde {
             ) -> Result<Option<A>, D::Error> {
                 struct VisitOptAmt<X>(PhantomData<X>);
 
-                impl<'de, X :SerdeAmountForOpt> de::Visitor<'de> for VisitOptAmt<X> {
+                impl<'de, X: SerdeAmountForOpt> de::Visitor<'de> for VisitOptAmt<X> {
                     type Value = Option<X>;
 
                     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
@@ -1196,7 +1207,8 @@ pub mod serde {
 
                     fn visit_none<E>(self) -> Result<Self::Value, E>
                     where
-                        E: de::Error {
+                        E: de::Error,
+                    {
                         Ok(None)
                     }
                     fn visit_some<D>(self, d: D) -> Result<Self::Value, D::Error>
@@ -1215,9 +1227,9 @@ pub mod serde {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use core::str::FromStr;
     #[cfg(feature = "std")]
     use std::panic;
-    use core::str::FromStr;
 
     #[cfg(feature = "serde")]
     use serde_test;
@@ -1294,43 +1306,64 @@ mod tests {
         let sat = Amount::from_sat;
         let ssat = SignedAmount::from_sat;
 
-        assert_eq!(f(11.22, D::Bitcoin), Ok(sat(1122000000)));
+        assert_eq!(f(11.22, D::Garlicoin), Ok(sat(1122000000)));
         assert_eq!(sf(-11.22, D::MilliBitcoin), Ok(ssat(-1122000)));
         assert_eq!(f(11.22, D::Bit), Ok(sat(1122)));
         assert_eq!(sf(-1000.0, D::MilliSatoshi), Ok(ssat(-1)));
-        assert_eq!(f(0.0001234, D::Bitcoin), Ok(sat(12340)));
-        assert_eq!(sf(-0.00012345, D::Bitcoin), Ok(ssat(-12345)));
+        assert_eq!(f(0.0001234, D::Garlicoin), Ok(sat(12340)));
+        assert_eq!(sf(-0.00012345, D::Garlicoin), Ok(ssat(-12345)));
 
         assert_eq!(f(-100.0, D::MilliSatoshi), Err(ParseAmountError::Negative));
         assert_eq!(f(11.22, D::Satoshi), Err(ParseAmountError::TooPrecise));
-        assert_eq!(sf(-100.0, D::MilliSatoshi), Err(ParseAmountError::TooPrecise));
-        assert_eq!(sf(-100.0, D::MilliSatoshi), Err(ParseAmountError::TooPrecise));
-        assert_eq!(f(42.123456781, D::Bitcoin), Err(ParseAmountError::TooPrecise));
-        assert_eq!(sf(-184467440738.0, D::Bitcoin), Err(ParseAmountError::TooBig));
-        assert_eq!(f(18446744073709551617.0, D::Satoshi), Err(ParseAmountError::TooBig));
         assert_eq!(
-            f(SignedAmount::max_value().to_float_in(D::Satoshi) + 1.0, D::Satoshi),
+            sf(-100.0, D::MilliSatoshi),
+            Err(ParseAmountError::TooPrecise)
+        );
+        assert_eq!(
+            sf(-100.0, D::MilliSatoshi),
+            Err(ParseAmountError::TooPrecise)
+        );
+        assert_eq!(
+            f(42.123456781, D::Garlicoin),
+            Err(ParseAmountError::TooPrecise)
+        );
+        assert_eq!(
+            sf(-184467440738.0, D::Garlicoin),
             Err(ParseAmountError::TooBig)
         );
         assert_eq!(
-            f(Amount::max_value().to_float_in(D::Satoshi) + 1.0, D::Satoshi),
+            f(18446744073709551617.0, D::Satoshi),
+            Err(ParseAmountError::TooBig)
+        );
+        assert_eq!(
+            f(
+                SignedAmount::max_value().to_float_in(D::Satoshi) + 1.0,
+                D::Satoshi
+            ),
+            Err(ParseAmountError::TooBig)
+        );
+        assert_eq!(
+            f(
+                Amount::max_value().to_float_in(D::Satoshi) + 1.0,
+                D::Satoshi
+            ),
             Err(ParseAmountError::TooBig)
         );
 
         let btc = move |f| SignedAmount::from_btc(f).unwrap();
-        assert_eq!(btc(2.5).to_float_in(D::Bitcoin), 2.5);
+        assert_eq!(btc(2.5).to_float_in(D::Garlicoin), 2.5);
         assert_eq!(btc(-2.5).to_float_in(D::MilliBitcoin), -2500.0);
         assert_eq!(btc(2.5).to_float_in(D::Satoshi), 250000000.0);
         assert_eq!(btc(-2.5).to_float_in(D::MilliSatoshi), -250000000000.0);
 
         let btc = move |f| Amount::from_btc(f).unwrap();
-        assert_eq!(&btc(0.0012).to_float_in(D::Bitcoin).to_string(), "0.0012")
+        assert_eq!(&btc(0.0012).to_float_in(D::Garlicoin).to_string(), "0.0012")
     }
 
     #[test]
     fn parsing() {
         use super::ParseAmountError as E;
-        let btc = Denomination::Bitcoin;
+        let btc = Denomination::Garlicoin;
         let sat = Denomination::Satoshi;
         let p = Amount::from_str_in;
         let sp = SignedAmount::from_str_in;
@@ -1350,9 +1383,15 @@ mod tests {
         assert_eq!(p("1.1", btc), Ok(Amount::from_sat(1_100_000_00)));
         assert_eq!(p("100", sat), Ok(Amount::from_sat(100)));
         assert_eq!(p("55", sat), Ok(Amount::from_sat(55)));
-        assert_eq!(p("5500000000000000000", sat), Ok(Amount::from_sat(5_500_000_000_000_000_000)));
+        assert_eq!(
+            p("5500000000000000000", sat),
+            Ok(Amount::from_sat(5_500_000_000_000_000_000))
+        );
         // Should this even pass?
-        assert_eq!(p("5500000000000000000.", sat), Ok(Amount::from_sat(5_500_000_000_000_000_000)));
+        assert_eq!(
+            p("5500000000000000000.", sat),
+            Ok(Amount::from_sat(5_500_000_000_000_000_000))
+        );
         assert_eq!(
             p("12345678901.12345678", btc),
             Ok(Amount::from_sat(12_345_678_901__123_456_78))
@@ -1360,34 +1399,64 @@ mod tests {
 
         // make sure satoshi > i64::max_value() is checked.
         let amount = Amount::from_sat(i64::max_value() as u64);
-        assert_eq!(Amount::from_str_in(&amount.to_string_in(sat), sat), Ok(amount));
-        assert_eq!(Amount::from_str_in(&(amount+Amount(1)).to_string_in(sat), sat), Err(E::TooBig));
+        assert_eq!(
+            Amount::from_str_in(&amount.to_string_in(sat), sat),
+            Ok(amount)
+        );
+        assert_eq!(
+            Amount::from_str_in(&(amount + Amount(1)).to_string_in(sat), sat),
+            Err(E::TooBig)
+        );
 
         assert_eq!(p("12.000", Denomination::MilliSatoshi), Err(E::TooPrecise));
         // exactly 50 chars.
-        assert_eq!(p("100000000000000.0000000000000000000000000000000000", Denomination::Bitcoin), Err(E::TooBig));
+        assert_eq!(
+            p(
+                "100000000000000.0000000000000000000000000000000000",
+                Denomination::Garlicoin
+            ),
+            Err(E::TooBig)
+        );
         // more than 50 chars.
-        assert_eq!(p("100000000000000.00000000000000000000000000000000000", Denomination::Bitcoin), Err(E::InputTooLarge));
+        assert_eq!(
+            p(
+                "100000000000000.00000000000000000000000000000000000",
+                Denomination::Garlicoin
+            ),
+            Err(E::InputTooLarge)
+        );
     }
 
     #[test]
     fn to_string() {
         use super::Denomination as D;
 
-        assert_eq!(Amount::ONE_BTC.to_string_in(D::Bitcoin), "1.00000000");
+        assert_eq!(Amount::ONE_BTC.to_string_in(D::Garlicoin), "1.00000000");
         assert_eq!(Amount::ONE_BTC.to_string_in(D::Satoshi), "100000000");
-        assert_eq!(Amount::ONE_SAT.to_string_in(D::Bitcoin), "0.00000001");
-        assert_eq!(SignedAmount::from_sat(-42).to_string_in(D::Bitcoin), "-0.00000042");
+        assert_eq!(Amount::ONE_SAT.to_string_in(D::Garlicoin), "0.00000001");
+        assert_eq!(
+            SignedAmount::from_sat(-42).to_string_in(D::Garlicoin),
+            "-0.00000042"
+        );
 
-        assert_eq!(Amount::ONE_BTC.to_string_with_denomination(D::Bitcoin), "1.00000000 BTC");
-        assert_eq!(Amount::ONE_SAT.to_string_with_denomination(D::MilliSatoshi), "1000 msat");
+        assert_eq!(
+            Amount::ONE_BTC.to_string_with_denomination(D::Garlicoin),
+            "1.00000000 BTC"
+        );
+        assert_eq!(
+            Amount::ONE_SAT.to_string_with_denomination(D::MilliSatoshi),
+            "1000 msat"
+        );
         assert_eq!(
             SignedAmount::ONE_BTC.to_string_with_denomination(D::Satoshi),
             "100000000 satoshi"
         );
-        assert_eq!(Amount::ONE_SAT.to_string_with_denomination(D::Bitcoin), "0.00000001 BTC");
         assert_eq!(
-            SignedAmount::from_sat(-42).to_string_with_denomination(D::Bitcoin),
+            Amount::ONE_SAT.to_string_with_denomination(D::Garlicoin),
+            "0.00000001 BTC"
+        );
+        assert_eq!(
+            SignedAmount::from_sat(-42).to_string_with_denomination(D::Garlicoin),
             "-0.00000042 BTC"
         );
     }
@@ -1398,19 +1467,28 @@ mod tests {
         let sa = SignedAmount::from_sat;
         let ua = Amount::from_sat;
 
-        assert_eq!(Amount::max_value().to_signed(),  Err(E::TooBig));
-        assert_eq!(ua(i64::max_value() as u64).to_signed(),  Ok(sa(i64::max_value())));
-        assert_eq!(ua(0).to_signed(),  Ok(sa(0)));
-        assert_eq!(ua(1).to_signed(), Ok( sa(1)));
-        assert_eq!(ua(1).to_signed(),  Ok(sa(1)));
-        assert_eq!(ua(i64::max_value() as u64 + 1).to_signed(),  Err(E::TooBig));
+        assert_eq!(Amount::max_value().to_signed(), Err(E::TooBig));
+        assert_eq!(
+            ua(i64::max_value() as u64).to_signed(),
+            Ok(sa(i64::max_value()))
+        );
+        assert_eq!(ua(0).to_signed(), Ok(sa(0)));
+        assert_eq!(ua(1).to_signed(), Ok(sa(1)));
+        assert_eq!(ua(1).to_signed(), Ok(sa(1)));
+        assert_eq!(ua(i64::max_value() as u64 + 1).to_signed(), Err(E::TooBig));
 
         assert_eq!(sa(-1).to_unsigned(), Err(E::Negative));
-        assert_eq!(sa(i64::max_value()).to_unsigned(), Ok(ua(i64::max_value() as u64)));
+        assert_eq!(
+            sa(i64::max_value()).to_unsigned(),
+            Ok(ua(i64::max_value() as u64))
+        );
 
         assert_eq!(sa(0).to_unsigned().unwrap().to_signed(), Ok(sa(0)));
         assert_eq!(sa(1).to_unsigned().unwrap().to_signed(), Ok(sa(1)));
-        assert_eq!(sa(i64::max_value()).to_unsigned().unwrap().to_signed(), Ok(sa(i64::max_value())));
+        assert_eq!(
+            sa(i64::max_value()).to_unsigned().unwrap().to_signed(),
+            Ok(sa(i64::max_value()))
+        );
     }
 
     #[test]
@@ -1461,39 +1539,125 @@ mod tests {
 
         assert_eq!("0.50", Amount::from_sat(50).to_string_in(D::Bit));
         assert_eq!("-0.50", SignedAmount::from_sat(-50).to_string_in(D::Bit));
-        assert_eq!("0.00253583", Amount::from_sat(253583).to_string_in(D::Bitcoin));
+        assert_eq!(
+            "0.00253583",
+            Amount::from_sat(253583).to_string_in(D::Garlicoin)
+        );
         assert_eq!("-5", SignedAmount::from_sat(-5).to_string_in(D::Satoshi));
-        assert_eq!("0.10000000", Amount::from_sat(100_000_00).to_string_in(D::Bitcoin));
-        assert_eq!("-100.00", SignedAmount::from_sat(-10_000).to_string_in(D::Bit));
-        assert_eq!("2535830", Amount::from_sat(253583).to_string_in(D::NanoBitcoin));
-        assert_eq!("-100000", SignedAmount::from_sat(-10_000).to_string_in(D::NanoBitcoin));
-        assert_eq!("2535830000", Amount::from_sat(253583).to_string_in(D::PicoBitcoin));
-        assert_eq!("-100000000", SignedAmount::from_sat(-10_000).to_string_in(D::PicoBitcoin));
+        assert_eq!(
+            "0.10000000",
+            Amount::from_sat(100_000_00).to_string_in(D::Garlicoin)
+        );
+        assert_eq!(
+            "-100.00",
+            SignedAmount::from_sat(-10_000).to_string_in(D::Bit)
+        );
+        assert_eq!(
+            "2535830",
+            Amount::from_sat(253583).to_string_in(D::NanoBitcoin)
+        );
+        assert_eq!(
+            "-100000",
+            SignedAmount::from_sat(-10_000).to_string_in(D::NanoBitcoin)
+        );
+        assert_eq!(
+            "2535830000",
+            Amount::from_sat(253583).to_string_in(D::PicoBitcoin)
+        );
+        assert_eq!(
+            "-100000000",
+            SignedAmount::from_sat(-10_000).to_string_in(D::PicoBitcoin)
+        );
 
+        assert_eq!(
+            ua_str(&ua_sat(0).to_string_in(D::Satoshi), D::Satoshi),
+            Ok(ua_sat(0))
+        );
+        assert_eq!(
+            ua_str(&ua_sat(500).to_string_in(D::Garlicoin), D::Garlicoin),
+            Ok(ua_sat(500))
+        );
+        assert_eq!(
+            ua_str(&ua_sat(21_000_000).to_string_in(D::Bit), D::Bit),
+            Ok(ua_sat(21_000_000))
+        );
+        assert_eq!(
+            ua_str(&ua_sat(1).to_string_in(D::MicroBitcoin), D::MicroBitcoin),
+            Ok(ua_sat(1))
+        );
+        assert_eq!(
+            ua_str(
+                &ua_sat(1_000_000_000_000).to_string_in(D::MilliBitcoin),
+                D::MilliBitcoin
+            ),
+            Ok(ua_sat(1_000_000_000_000))
+        );
+        assert_eq!(
+            ua_str(
+                &ua_sat(u64::max_value()).to_string_in(D::MilliBitcoin),
+                D::MilliBitcoin
+            ),
+            Err(ParseAmountError::TooBig)
+        );
 
+        assert_eq!(
+            sa_str(&sa_sat(-1).to_string_in(D::MicroBitcoin), D::MicroBitcoin),
+            Ok(sa_sat(-1))
+        );
 
-        assert_eq!(ua_str(&ua_sat(0).to_string_in(D::Satoshi), D::Satoshi), Ok(ua_sat(0)));
-        assert_eq!(ua_str(&ua_sat(500).to_string_in(D::Bitcoin), D::Bitcoin), Ok(ua_sat(500)));
-        assert_eq!(ua_str(&ua_sat(21_000_000).to_string_in(D::Bit), D::Bit), Ok(ua_sat(21_000_000)));
-        assert_eq!(ua_str(&ua_sat(1).to_string_in(D::MicroBitcoin), D::MicroBitcoin), Ok(ua_sat(1)));
-        assert_eq!(ua_str(&ua_sat(1_000_000_000_000).to_string_in(D::MilliBitcoin), D::MilliBitcoin), Ok(ua_sat(1_000_000_000_000)));
-        assert_eq!(ua_str(&ua_sat(u64::max_value()).to_string_in(D::MilliBitcoin), D::MilliBitcoin),  Err(ParseAmountError::TooBig));
-
-        assert_eq!(sa_str(&sa_sat(-1).to_string_in(D::MicroBitcoin), D::MicroBitcoin), Ok(sa_sat(-1)));
-
-        assert_eq!(sa_str(&sa_sat(i64::max_value()).to_string_in(D::Satoshi), D::MicroBitcoin), Err(ParseAmountError::TooBig));
+        assert_eq!(
+            sa_str(
+                &sa_sat(i64::max_value()).to_string_in(D::Satoshi),
+                D::MicroBitcoin
+            ),
+            Err(ParseAmountError::TooBig)
+        );
         // Test an overflow bug in `abs()`
-        assert_eq!(sa_str(&sa_sat(i64::min_value()).to_string_in(D::Satoshi), D::MicroBitcoin), Err(ParseAmountError::TooBig));
+        assert_eq!(
+            sa_str(
+                &sa_sat(i64::min_value()).to_string_in(D::Satoshi),
+                D::MicroBitcoin
+            ),
+            Err(ParseAmountError::TooBig)
+        );
 
-        assert_eq!(sa_str(&sa_sat(-1).to_string_in(D::NanoBitcoin), D::NanoBitcoin), Ok(sa_sat(-1)));
-        assert_eq!(sa_str(&sa_sat(i64::max_value()).to_string_in(D::Satoshi), D::NanoBitcoin), Err(ParseAmountError::TooPrecise));
-        assert_eq!(sa_str(&sa_sat(i64::min_value()).to_string_in(D::Satoshi), D::NanoBitcoin), Err(ParseAmountError::TooPrecise));
+        assert_eq!(
+            sa_str(&sa_sat(-1).to_string_in(D::NanoBitcoin), D::NanoBitcoin),
+            Ok(sa_sat(-1))
+        );
+        assert_eq!(
+            sa_str(
+                &sa_sat(i64::max_value()).to_string_in(D::Satoshi),
+                D::NanoBitcoin
+            ),
+            Err(ParseAmountError::TooPrecise)
+        );
+        assert_eq!(
+            sa_str(
+                &sa_sat(i64::min_value()).to_string_in(D::Satoshi),
+                D::NanoBitcoin
+            ),
+            Err(ParseAmountError::TooPrecise)
+        );
 
-        assert_eq!(sa_str(&sa_sat(-1).to_string_in(D::PicoBitcoin), D::PicoBitcoin), Ok(sa_sat(-1)));
-        assert_eq!(sa_str(&sa_sat(i64::max_value()).to_string_in(D::Satoshi), D::PicoBitcoin), Err(ParseAmountError::TooPrecise));
-        assert_eq!(sa_str(&sa_sat(i64::min_value()).to_string_in(D::Satoshi), D::PicoBitcoin), Err(ParseAmountError::TooPrecise));
-
-
+        assert_eq!(
+            sa_str(&sa_sat(-1).to_string_in(D::PicoBitcoin), D::PicoBitcoin),
+            Ok(sa_sat(-1))
+        );
+        assert_eq!(
+            sa_str(
+                &sa_sat(i64::max_value()).to_string_in(D::Satoshi),
+                D::PicoBitcoin
+            ),
+            Err(ParseAmountError::TooPrecise)
+        );
+        assert_eq!(
+            sa_str(
+                &sa_sat(i64::min_value()).to_string_in(D::Satoshi),
+                D::PicoBitcoin
+            ),
+            Err(ParseAmountError::TooPrecise)
+        );
     }
 
     #[test]
@@ -1501,7 +1665,7 @@ mod tests {
         use super::Denomination as D;
         let amt = Amount::from_sat(42);
         let denom = Amount::to_string_with_denomination;
-        assert_eq!(Amount::from_str(&denom(amt, D::Bitcoin)), Ok(amt));
+        assert_eq!(Amount::from_str(&denom(amt, D::Garlicoin)), Ok(amt));
         assert_eq!(Amount::from_str(&denom(amt, D::MilliBitcoin)), Ok(amt));
         assert_eq!(Amount::from_str(&denom(amt, D::MicroBitcoin)), Ok(amt));
         assert_eq!(Amount::from_str(&denom(amt, D::Bit)), Ok(amt));
@@ -1510,14 +1674,19 @@ mod tests {
         assert_eq!(Amount::from_str(&denom(amt, D::MilliSatoshi)), Ok(amt));
         assert_eq!(Amount::from_str(&denom(amt, D::PicoBitcoin)), Ok(amt));
 
-        assert_eq!(Amount::from_str("42 satoshi BTC"), Err(ParseAmountError::InvalidFormat));
-        assert_eq!(SignedAmount::from_str("-42 satoshi BTC"), Err(ParseAmountError::InvalidFormat));
+        assert_eq!(
+            Amount::from_str("42 satoshi BTC"),
+            Err(ParseAmountError::InvalidFormat)
+        );
+        assert_eq!(
+            SignedAmount::from_str("-42 satoshi BTC"),
+            Err(ParseAmountError::InvalidFormat)
+        );
     }
 
     #[cfg(feature = "serde")]
     #[test]
     fn serde_as_sat() {
-
         #[derive(Serialize, Deserialize, PartialEq, Debug)]
         struct T {
             #[serde(with = "::util::amount::serde::as_sat")]
@@ -1532,10 +1701,7 @@ mod tests {
                 samt: SignedAmount::from_sat(-123456789),
             },
             &[
-                serde_test::Token::Struct {
-                    name: "T",
-                    len: 2,
-                },
+                serde_test::Token::Struct { name: "T", len: 2 },
                 serde_test::Token::Str("amt"),
                 serde_test::Token::U64(123456789),
                 serde_test::Token::Str("samt"),
@@ -1574,9 +1740,15 @@ mod tests {
         // errors
         let t: Result<T, serde_json::Error> =
             serde_json::from_str("{\"amt\": 1000000.000000001, \"samt\": 1}");
-        assert!(t.unwrap_err().to_string().contains(&ParseAmountError::TooPrecise.to_string()));
+        assert!(t
+            .unwrap_err()
+            .to_string()
+            .contains(&ParseAmountError::TooPrecise.to_string()));
         let t: Result<T, serde_json::Error> = serde_json::from_str("{\"amt\": -1, \"samt\": 1}");
-        assert!(t.unwrap_err().to_string().contains(&ParseAmountError::Negative.to_string()));
+        assert!(t
+            .unwrap_err()
+            .to_string()
+            .contains(&ParseAmountError::Negative.to_string()));
     }
 
     #[cfg(feature = "serde")]
@@ -1604,7 +1776,7 @@ mod tests {
         // Test Roundtripping
         for s in [&with, &without].iter() {
             let v = serde_json::to_string(s).unwrap();
-            let w : T = serde_json::from_str(&v).unwrap();
+            let w: T = serde_json::from_str(&v).unwrap();
             assert_eq!(w, **s);
         }
 
@@ -1647,7 +1819,7 @@ mod tests {
         // Test Roundtripping
         for s in [&with, &without].iter() {
             let v = serde_json::to_string(s).unwrap();
-            let w : T = serde_json::from_str(&v).unwrap();
+            let w: T = serde_json::from_str(&v).unwrap();
             assert_eq!(w, **s);
         }
 
@@ -1668,12 +1840,15 @@ mod tests {
     #[test]
     fn sum_amounts() {
         assert_eq!(Amount::from_sat(0), vec![].into_iter().sum::<Amount>());
-        assert_eq!(SignedAmount::from_sat(0), vec![].into_iter().sum::<SignedAmount>());
+        assert_eq!(
+            SignedAmount::from_sat(0),
+            vec![].into_iter().sum::<SignedAmount>()
+        );
 
         let amounts = vec![
             Amount::from_sat(42),
             Amount::from_sat(1337),
-            Amount::from_sat(21)
+            Amount::from_sat(21),
         ];
         let sum = amounts.into_iter().sum::<Amount>();
         assert_eq!(Amount::from_sat(1400), sum);
@@ -1681,7 +1856,7 @@ mod tests {
         let amounts = vec![
             SignedAmount::from_sat(-42),
             SignedAmount::from_sat(1337),
-            SignedAmount::from_sat(21)
+            SignedAmount::from_sat(21),
         ];
         let sum = amounts.into_iter().sum::<SignedAmount>();
         assert_eq!(SignedAmount::from_sat(1316), sum);
@@ -1690,12 +1865,15 @@ mod tests {
     #[test]
     fn checked_sum_amounts() {
         assert_eq!(Some(Amount::from_sat(0)), vec![].into_iter().checked_sum());
-        assert_eq!(Some(SignedAmount::from_sat(0)), vec![].into_iter().checked_sum());
+        assert_eq!(
+            Some(SignedAmount::from_sat(0)),
+            vec![].into_iter().checked_sum()
+        );
 
         let amounts = vec![
             Amount::from_sat(42),
             Amount::from_sat(1337),
-            Amount::from_sat(21)
+            Amount::from_sat(21),
         ];
         let sum = amounts.into_iter().checked_sum();
         assert_eq!(Some(Amount::from_sat(1400)), sum);
@@ -1703,7 +1881,7 @@ mod tests {
         let amounts = vec![
             Amount::from_sat(u64::max_value()),
             Amount::from_sat(1337),
-            Amount::from_sat(21)
+            Amount::from_sat(21),
         ];
         let sum = amounts.into_iter().checked_sum();
         assert_eq!(None, sum);
@@ -1711,7 +1889,7 @@ mod tests {
         let amounts = vec![
             SignedAmount::from_sat(i64::min_value()),
             SignedAmount::from_sat(-1),
-            SignedAmount::from_sat(21)
+            SignedAmount::from_sat(21),
         ];
         let sum = amounts.into_iter().checked_sum();
         assert_eq!(None, sum);
@@ -1719,7 +1897,7 @@ mod tests {
         let amounts = vec![
             SignedAmount::from_sat(i64::max_value()),
             SignedAmount::from_sat(1),
-            SignedAmount::from_sat(21)
+            SignedAmount::from_sat(21),
         ];
         let sum = amounts.into_iter().checked_sum();
         assert_eq!(None, sum);
@@ -1727,7 +1905,7 @@ mod tests {
         let amounts = vec![
             SignedAmount::from_sat(42),
             SignedAmount::from_sat(3301),
-            SignedAmount::from_sat(21)
+            SignedAmount::from_sat(21),
         ];
         let sum = amounts.into_iter().checked_sum();
         assert_eq!(Some(SignedAmount::from_sat(3364)), sum);
@@ -1736,7 +1914,10 @@ mod tests {
     #[test]
     fn denomination_string_acceptable_forms() {
         // Non-exhaustive list of valid forms.
-        let valid = vec!["BTC", "btc", "mBTC", "mbtc", "uBTC", "ubtc", "SATOSHI","Satoshi", "Satoshis", "satoshis", "SAT", "Sat", "sats", "bit", "bits", "nBTC", "pBTC"];
+        let valid = vec![
+            "BTC", "btc", "mBTC", "mbtc", "uBTC", "ubtc", "SATOSHI", "Satoshi", "Satoshis",
+            "satoshis", "SAT", "Sat", "sats", "bit", "bits", "nBTC", "pBTC",
+        ];
         for denom in valid.iter() {
             assert!(Denomination::from_str(denom).is_ok());
         }
@@ -1745,11 +1926,13 @@ mod tests {
     #[test]
     fn disallow_confusing_forms() {
         // Non-exhaustive list of confusing forms.
-        let confusing = vec!["Msat", "Msats", "MSAT", "MSATS", "MSat", "MSats", "MBTC", "Mbtc", "PBTC"];
+        let confusing = vec![
+            "Msat", "Msats", "MSAT", "MSATS", "MSat", "MSats", "MBTC", "Mbtc", "PBTC",
+        ];
         for denom in confusing.iter() {
-            match  Denomination::from_str(denom) {
+            match Denomination::from_str(denom) {
                 Ok(_) => panic!("from_str should error for {}", denom),
-                Err(ParseAmountError::PossiblyConfusingDenomination(_)) => {},
+                Err(ParseAmountError::PossiblyConfusingDenomination(_)) => {}
                 Err(e) => panic!("unexpected error: {}", e),
             }
         }
@@ -1760,12 +1943,11 @@ mod tests {
         // Non-exhaustive list of unknown forms.
         let unknown = vec!["NBTC", "UBTC", "ABC", "abc"];
         for denom in unknown.iter() {
-            match  Denomination::from_str(denom) {
+            match Denomination::from_str(denom) {
                 Ok(_) => panic!("from_str should error for {}", denom),
-                Err(ParseAmountError::UnknownDenomination(_)) => {},
+                Err(ParseAmountError::UnknownDenomination(_)) => {}
                 Err(e) => panic!("unexpected error: {}", e),
             }
         }
     }
 }
-

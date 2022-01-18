@@ -1,6 +1,6 @@
-// Rust Bitcoin Library
+// Rust Garlicoin Library
 // Written by
-//   The Rust Bitcoin developers
+//   The Rust Garlicoin developers
 //
 // To the extent possible under law, the author(s) have dedicated all
 // copyright and related and neighboring rights to this software to
@@ -12,26 +12,26 @@
 // If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 //
 
-use prelude::*;
 use io;
+use prelude::*;
 
-use secp256k1;
 use blockdata::script::Script;
+use blockdata::transaction::{NonStandardSigHashType, Transaction, TxOut};
 use blockdata::witness::Witness;
-use blockdata::transaction::{Transaction, TxOut, NonStandardSigHashType};
 use consensus::encode;
 use hashes::{self, hash160, ripemd160, sha256, sha256d};
+use secp256k1;
 use secp256k1::XOnlyPublicKey;
 use util::bip32::KeySource;
 use util::psbt;
 use util::psbt::map::Map;
 use util::psbt::raw;
 use util::psbt::serialize::Deserialize;
-use util::psbt::{Error, error};
+use util::psbt::{error, Error};
 
-use util::taproot::{ControlBlock, LeafVersion, TapLeafHash, TapBranchHash};
 use util::sighash;
-use {EcdsaSigHashType, SchnorrSigHashType, EcdsaSig, SchnorrSig};
+use util::taproot::{ControlBlock, LeafVersion, TapBranchHash, TapLeafHash};
+use {EcdsaSig, EcdsaSigHashType, SchnorrSig, SchnorrSigHashType};
 
 /// Type: Non-Witness UTXO PSBT_IN_NON_WITNESS_UTXO = 0x00
 const PSBT_IN_NON_WITNESS_UTXO: u8 = 0x00;
@@ -66,11 +66,11 @@ const PSBT_IN_TAP_SCRIPT_SIG: u8 = 0x14;
 /// Type: Taproot Leaf Script PSBT_IN_TAP_LEAF_SCRIPT = 0x14
 const PSBT_IN_TAP_LEAF_SCRIPT: u8 = 0x15;
 /// Type: Taproot Key BIP 32 Derivation Path PSBT_IN_TAP_BIP32_DERIVATION = 0x16
-const PSBT_IN_TAP_BIP32_DERIVATION : u8 = 0x16;
+const PSBT_IN_TAP_BIP32_DERIVATION: u8 = 0x16;
 /// Type: Taproot Internal Key PSBT_IN_TAP_INTERNAL_KEY = 0x17
-const PSBT_IN_TAP_INTERNAL_KEY : u8 = 0x17;
+const PSBT_IN_TAP_INTERNAL_KEY: u8 = 0x17;
 /// Type: Taproot Merkle Root PSBT_IN_TAP_MERKLE_ROOT = 0x18
-const PSBT_IN_TAP_MERKLE_ROOT : u8 = 0x18;
+const PSBT_IN_TAP_MERKLE_ROOT: u8 = 0x18;
 /// Type: Proprietary Use Type PSBT_IN_PROPRIETARY = 0xFC
 const PSBT_IN_PROPRIETARY: u8 = 0xFC;
 
@@ -132,17 +132,22 @@ pub struct Input {
     #[cfg_attr(feature = "serde", serde(with = "::serde_utils::btreemap_as_seq"))]
     pub tap_key_origins: BTreeMap<XOnlyPublicKey, (Vec<TapLeafHash>, KeySource)>,
     /// Taproot Internal key.
-    pub tap_internal_key : Option<XOnlyPublicKey>,
+    pub tap_internal_key: Option<XOnlyPublicKey>,
     /// Taproot Merkle root.
-    pub tap_merkle_root : Option<TapBranchHash>,
+    pub tap_merkle_root: Option<TapBranchHash>,
     /// Proprietary key-value pairs for this input.
-    #[cfg_attr(feature = "serde", serde(with = "::serde_utils::btreemap_as_seq_byte_values"))]
+    #[cfg_attr(
+        feature = "serde",
+        serde(with = "::serde_utils::btreemap_as_seq_byte_values")
+    )]
     pub proprietary: BTreeMap<raw::ProprietaryKey, Vec<u8>>,
     /// Unknown key-value pairs for this input.
-    #[cfg_attr(feature = "serde", serde(with = "::serde_utils::btreemap_as_seq_byte_values"))]
+    #[cfg_attr(
+        feature = "serde",
+        serde(with = "::serde_utils::btreemap_as_seq_byte_values")
+    )]
     pub unknown: BTreeMap<raw::Key, Vec<u8>>,
 }
-
 
 /// A Signature hash type for the corresponding input. As of taproot upgrade, the signature hash
 /// type can be either [`EcdsaSigHashType`] or [`SchnorrSigHashType`] but it is not possible to know
@@ -151,18 +156,22 @@ pub struct Input {
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct PsbtSigHashType {
-    pub (in ::util::psbt) inner: u32,
+    pub(in util::psbt) inner: u32,
 }
 
 impl From<EcdsaSigHashType> for PsbtSigHashType {
     fn from(ecdsa_hash_ty: EcdsaSigHashType) -> Self {
-        PsbtSigHashType {inner: ecdsa_hash_ty as u32}
+        PsbtSigHashType {
+            inner: ecdsa_hash_ty as u32,
+        }
     }
 }
 
 impl From<SchnorrSigHashType> for PsbtSigHashType {
     fn from(schnorr_hash_ty: SchnorrSigHashType) -> Self {
-        PsbtSigHashType {inner: schnorr_hash_ty as u32}
+        PsbtSigHashType {
+            inner: schnorr_hash_ty as u32,
+        }
     }
 }
 
@@ -243,16 +252,36 @@ impl Input {
                 }
             }
             PSBT_IN_RIPEMD160 => {
-                psbt_insert_hash_pair(&mut self.ripemd160_preimages, raw_key, raw_value, error::PsbtHash::Ripemd)?;
+                psbt_insert_hash_pair(
+                    &mut self.ripemd160_preimages,
+                    raw_key,
+                    raw_value,
+                    error::PsbtHash::Ripemd,
+                )?;
             }
             PSBT_IN_SHA256 => {
-                psbt_insert_hash_pair(&mut self.sha256_preimages, raw_key, raw_value, error::PsbtHash::Sha256)?;
+                psbt_insert_hash_pair(
+                    &mut self.sha256_preimages,
+                    raw_key,
+                    raw_value,
+                    error::PsbtHash::Sha256,
+                )?;
             }
             PSBT_IN_HASH160 => {
-                psbt_insert_hash_pair(&mut self.hash160_preimages, raw_key, raw_value, error::PsbtHash::Hash160)?;
+                psbt_insert_hash_pair(
+                    &mut self.hash160_preimages,
+                    raw_key,
+                    raw_value,
+                    error::PsbtHash::Hash160,
+                )?;
             }
             PSBT_IN_HASH256 => {
-                psbt_insert_hash_pair(&mut self.hash256_preimages, raw_key, raw_value, error::PsbtHash::Hash256)?;
+                psbt_insert_hash_pair(
+                    &mut self.hash256_preimages,
+                    raw_key,
+                    raw_value,
+                    error::PsbtHash::Hash256,
+                )?;
             }
             PSBT_IN_TAP_KEY_SIG => {
                 impl_psbt_insert_pair! {
@@ -264,7 +293,7 @@ impl Input {
                     self.tap_script_sigs <= <raw_key: (XOnlyPublicKey, TapLeafHash)>|<raw_value: SchnorrSig>
                 }
             }
-            PSBT_IN_TAP_LEAF_SCRIPT=> {
+            PSBT_IN_TAP_LEAF_SCRIPT => {
                 impl_psbt_insert_pair! {
                     self.tap_scripts <= <raw_key: ControlBlock>|< raw_value: (Script, LeafVersion)>
                 }
@@ -289,15 +318,19 @@ impl Input {
                 match self.proprietary.entry(key) {
                     btree_map::Entry::Vacant(empty_key) => {
                         empty_key.insert(raw_value);
-                    },
-                    btree_map::Entry::Occupied(_) => return Err(Error::DuplicateKey(raw_key).into()),
+                    }
+                    btree_map::Entry::Occupied(_) => {
+                        return Err(Error::DuplicateKey(raw_key).into())
+                    }
                 }
             }
             _ => match self.unknown.entry(raw_key) {
                 btree_map::Entry::Vacant(empty_key) => {
                     empty_key.insert(raw_value);
                 }
-                btree_map::Entry::Occupied(k) => return Err(Error::DuplicateKey(k.key().clone()).into()),
+                btree_map::Entry::Occupied(k) => {
+                    return Err(Error::DuplicateKey(k.key().clone()).into())
+                }
             },
         }
 

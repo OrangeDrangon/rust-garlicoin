@@ -1,6 +1,6 @@
-// Rust Bitcoin Library
+// Rust Garlicoin Library
 // Written by
-//   The Rust Bitcoin developers
+//   The Rust Garlicoin developers
 //
 // To the extent possible under law, the author(s) have dedicated all
 // copyright and related and neighboring rights to this software to
@@ -77,7 +77,7 @@ pub enum Error {
     /// Conflicting data during merge procedure:
     /// global extended public key has inconsistent key sources
     MergeInconsistentKeySources(ExtendedPubKey),
-    /// Serialization error in bitcoin consensus-encoded structures
+    /// Serialization error in garlicoin consensus-encoded structures
     ConsensusEncoding,
 }
 
@@ -85,25 +85,54 @@ impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             Error::InvalidKey(ref rkey) => write!(f, "invalid key: {}", rkey),
-            Error::InvalidProprietaryKey => write!(f, "non-proprietary key type found when proprietary key was expected"),
+            Error::InvalidProprietaryKey => write!(
+                f,
+                "non-proprietary key type found when proprietary key was expected"
+            ),
             Error::DuplicateKey(ref rkey) => write!(f, "duplicate key: {}", rkey),
-            Error::UnexpectedUnsignedTx { expected: ref e, actual: ref a } => write!(f, "different unsigned transaction: expected {}, actual {}", e.txid(), a.txid()),
-            Error::NonStandardSigHashType(ref sht) => write!(f, "non-standard sighash type: {}", sht),
+            Error::UnexpectedUnsignedTx {
+                expected: ref e,
+                actual: ref a,
+            } => write!(
+                f,
+                "different unsigned transaction: expected {}, actual {}",
+                e.txid(),
+                a.txid()
+            ),
+            Error::NonStandardSigHashType(ref sht) => {
+                write!(f, "non-standard sighash type: {}", sht)
+            }
             Error::InvalidMagic => f.write_str("invalid magic"),
             Error::InvalidSeparator => f.write_str("invalid separator"),
-            Error::UnsignedTxHasScriptSigs => f.write_str("the unsigned transaction has script sigs"),
-            Error::UnsignedTxHasScriptWitnesses => f.write_str("the unsigned transaction has script witnesses"),
+            Error::UnsignedTxHasScriptSigs => {
+                f.write_str("the unsigned transaction has script sigs")
+            }
+            Error::UnsignedTxHasScriptWitnesses => {
+                f.write_str("the unsigned transaction has script witnesses")
+            }
             Error::MustHaveUnsignedTx => {
                 f.write_str("partially signed transactions must have an unsigned transaction")
             }
             Error::NoMorePairs => f.write_str("no more key-value pairs for this psbt map"),
             Error::HashParseError(e) => write!(f, "Hash Parse Error: {}", e),
-            Error::InvalidPreimageHashPair{ref preimage, ref hash, ref hash_type} => {
+            Error::InvalidPreimageHashPair {
+                ref preimage,
+                ref hash,
+                ref hash_type,
+            } => {
                 // directly using debug forms of psbthash enums
-                write!(f, "Preimage {:?} does not match {:?} hash {:?}", preimage, hash_type, hash )
+                write!(
+                    f,
+                    "Preimage {:?} does not match {:?} hash {:?}",
+                    preimage, hash_type, hash
+                )
             }
-            Error::MergeInconsistentKeySources(ref s) => { write!(f, "merge conflict: {}", s) }
-            Error::ConsensusEncoding => f.write_str("bitcoin consensus or BIP-174 encoding error"),
+            Error::MergeInconsistentKeySources(ref s) => {
+                write!(f, "merge conflict: {}", s)
+            }
+            Error::ConsensusEncoding => {
+                f.write_str("garlicoin consensus or BIP-174 encoding error")
+            }
         }
     }
 }

@@ -1,4 +1,4 @@
-// Rust Bitcoin Library
+// Rust Garlicoin Library
 // Written in 2014 by
 //   Andrew Poelstra <apoelstra@wpsoftware.net>
 //
@@ -12,16 +12,15 @@
 // If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 //
 
-//! Bitcoin block data.
+//! Garlicoin block data.
 //!
 //! This module defines structures and functions for storing the blocks and
-//! transactions which make up the Bitcoin system.
+//! transactions which make up the Garlicoin system.
 //!
 
+pub mod block;
 pub mod constants;
 pub mod opcodes;
 pub mod script;
 pub mod transaction;
-pub mod block;
 pub mod witness;
-

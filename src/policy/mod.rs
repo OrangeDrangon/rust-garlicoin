@@ -1,4 +1,4 @@
-// Rust Bitcoin Library
+// Rust Garlicoin Library
 // Written in 2014 by
 //   Andrew Poelstra <apoelstra@wpsoftware.net>
 //
@@ -12,14 +12,14 @@
 // If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 //
 
-//! Bitcoin policy.
+//! Garlicoin policy.
 //!
 //! This module exposes some constants and functions used in the reference
 //! implementation and which, as a consequence, define some network rules.
 //!
 //! # *Warning*
 //! While the constants present in this module are very unlikely to change, they do not define
-//! Bitcoin. As such they must not be relied upon as if they were consensus rules.
+//! Garlicoin. As such they must not be relied upon as if they were consensus rules.
 //!
 //! These values were taken from bitcoind v0.21.1 (194b9b8792d9b0798fdb570b79fa51f1d1f5ebaf).
 //!

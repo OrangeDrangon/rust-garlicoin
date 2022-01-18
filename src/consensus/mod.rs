@@ -1,6 +1,6 @@
-// Rust Bitcoin Library
+// Rust Garlicoin Library
 // Written by
-//   The Rust Bitcoin developers
+//   The Rust Garlicoin developers
 //
 // To the extent possible under law, the author(s) have dedicated all
 // copyright and related and neighboring rights to this software to
@@ -12,15 +12,15 @@
 // If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 //
 
-//! Bitcoin consensus.
+//! Garlicoin consensus.
 //!
 //! This module defines structures, functions, and traits that are needed to
-//! conform to Bitcoin consensus.
+//! conform to Garlicoin consensus.
 //!
 
 pub mod encode;
 pub mod params;
 
-pub use self::encode::{Encodable, Decodable, WriteExt, ReadExt};
-pub use self::encode::{serialize, deserialize, deserialize_partial};
+pub use self::encode::{deserialize, deserialize_partial, serialize};
+pub use self::encode::{Decodable, Encodable, ReadExt, WriteExt};
 pub use self::params::Params;

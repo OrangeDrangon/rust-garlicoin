@@ -1,4 +1,4 @@
-// Rust Bitcoin Library
+// Rust Garlicoin Library
 // Written in 2014 by
 //     Andrew Poelstra <apoelstra@wpsoftware.net>
 //
@@ -14,7 +14,7 @@
 
 //! Internal macros.
 //!
-//! Macros meant to be used inside the Rust Bitcoin library.
+//! Macros meant to be used inside the Rust Garlicoin library.
 //!
 
 macro_rules! impl_consensus_encoding {
@@ -65,23 +65,33 @@ macro_rules! impl_array_newtype {
 
             /// Returns the length of the object as an array
             #[inline]
-            pub fn len(&self) -> usize { $len }
+            pub fn len(&self) -> usize {
+                $len
+            }
 
             /// Returns whether the object, as an array, is empty. Always false.
             #[inline]
-            pub fn is_empty(&self) -> bool { false }
+            pub fn is_empty(&self) -> bool {
+                false
+            }
 
             /// Returns the underlying bytes.
             #[inline]
-            pub fn as_bytes(&self) -> &[$ty; $len] { &self.0 }
+            pub fn as_bytes(&self) -> &[$ty; $len] {
+                &self.0
+            }
 
             /// Returns the underlying bytes.
             #[inline]
-            pub fn to_bytes(&self) -> [$ty; $len] { self.0.clone() }
+            pub fn to_bytes(&self) -> [$ty; $len] {
+                self.0.clone()
+            }
 
             /// Returns the underlying bytes.
             #[inline]
-            pub fn into_bytes(self) -> [$ty; $len] { self.0 }
+            pub fn into_bytes(self) -> [$ty; $len] {
+                self.0
+            }
         }
 
         impl<'a> ::core::convert::From<&'a [$ty]> for $thing {
@@ -94,13 +104,12 @@ macro_rules! impl_array_newtype {
         }
 
         impl_index_newtype!($thing, $ty);
-    }
+    };
 }
 
 /// Implements standard indexing methods for a given wrapper type
 macro_rules! impl_index_newtype {
     ($thing:ident, $ty:ty) => {
-
         impl ::core::ops::Index<usize> for $thing {
             type Output = $ty;
 
@@ -145,8 +154,7 @@ macro_rules! impl_index_newtype {
                 &self.0[..]
             }
         }
-
-    }
+    };
 }
 
 macro_rules! display_from_debug {
@@ -156,7 +164,7 @@ macro_rules! display_from_debug {
                 ::core::fmt::Debug::fmt(self, f)
             }
         }
-    }
+    };
 }
 
 #[cfg(test)]
@@ -177,8 +185,8 @@ macro_rules! serde_string_impl {
             where
                 D: $crate::serde::de::Deserializer<'de>,
             {
-                use ::core::fmt::{self, Formatter};
-                use ::core::str::FromStr;
+                use core::fmt::{self, Formatter};
+                use core::str::FromStr;
 
                 struct Visitor;
                 impl<'de> $crate::serde::de::Visitor<'de> for Visitor {
@@ -421,8 +429,7 @@ macro_rules! serde_struct_human_string_impl {
 /// - core::str::FromStr
 /// - hashes::hex::FromHex
 macro_rules! impl_bytes_newtype {
-    ($t:ident, $len:expr) => (
-
+    ($t:ident, $len:expr) => {
         impl ::core::fmt::LowerHex for $t {
             fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
                 for &ch in self.0.iter() {
@@ -446,9 +453,10 @@ macro_rules! impl_bytes_newtype {
 
         impl $crate::hashes::hex::FromHex for $t {
             fn from_byte_iter<I>(iter: I) -> Result<Self, $crate::hashes::hex::Error>
-                where I: ::core::iter::Iterator<Item=Result<u8, $crate::hashes::hex::Error>> +
-                    ::core::iter::ExactSizeIterator +
-                    ::core::iter::DoubleEndedIterator,
+            where
+                I: ::core::iter::Iterator<Item = Result<u8, $crate::hashes::hex::Error>>
+                    + ::core::iter::ExactSizeIterator
+                    + ::core::iter::DoubleEndedIterator,
             {
                 if iter.len() == $len {
                     let mut ret = [0; $len];
@@ -457,7 +465,10 @@ macro_rules! impl_bytes_newtype {
                     }
                     Ok($t(ret))
                 } else {
-                    Err($crate::hashes::hex::Error::InvalidLength(2 * $len, 2 * iter.len()))
+                    Err($crate::hashes::hex::Error::InvalidLength(
+                        2 * $len,
+                        2 * iter.len(),
+                    ))
                 }
             }
         }
@@ -491,7 +502,10 @@ macro_rules! impl_bytes_newtype {
                     impl<'de> $crate::serde::de::Visitor<'de> for HexVisitor {
                         type Value = $t;
 
-                        fn expecting(&self, formatter: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+                        fn expecting(
+                            &self,
+                            formatter: &mut ::core::fmt::Formatter,
+                        ) -> ::core::fmt::Result {
                             formatter.write_str("an ASCII hex string")
                         }
 
@@ -502,7 +516,10 @@ macro_rules! impl_bytes_newtype {
                             if let Ok(hex) = ::core::str::from_utf8(v) {
                                 $crate::hashes::hex::FromHex::from_hex(hex).map_err(E::custom)
                             } else {
-                                return Err(E::invalid_value($crate::serde::de::Unexpected::Bytes(v), &self));
+                                return Err(E::invalid_value(
+                                    $crate::serde::de::Unexpected::Bytes(v),
+                                    &self,
+                                ));
                             }
                         }
 
@@ -521,7 +538,10 @@ macro_rules! impl_bytes_newtype {
                     impl<'de> $crate::serde::de::Visitor<'de> for BytesVisitor {
                         type Value = $t;
 
-                        fn expecting(&self, formatter: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+                        fn expecting(
+                            &self,
+                            formatter: &mut ::core::fmt::Formatter,
+                        ) -> ::core::fmt::Result {
                             formatter.write_str("a bytestring")
                         }
 
@@ -543,7 +563,7 @@ macro_rules! impl_bytes_newtype {
                 }
             }
         }
-    )
+    };
 }
 
 macro_rules! user_enum {
